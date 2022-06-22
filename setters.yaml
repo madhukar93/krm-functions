@@ -1,0 +1,9 @@
+# setters.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apply-setters-fn-config
+data:
+  service-name: tokko-lummopages-web
+  host: Host(`lummo.buzz`) || Host(`www.lummo.buzz`)
+  path: Path('/')

@@ -1,0 +1,23 @@
+apiVersion: fn.kpt.dev/v1alpha1
+kind: ApplyReplacements
+metadata:
+  name: replacements-fn-config
+replacements:
+  - source:
+      kind: Service
+      fieldPath: metadata.name
+    targets:
+      - select:
+          name: tokko-lummopages-web
+          kind: IngressRoute
+        fieldPaths:
+          - spec.routes.0.services.0.name
+  - source:
+      kind: Certificate
+      fieldPath: spec.secretName
+    targets:
+      - select:
+          name: tokko-lummopages-web
+          kind: IngressRoute
+        fieldPaths:
+          - spec.tls.secretName

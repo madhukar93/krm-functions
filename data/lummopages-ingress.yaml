@@ -1,0 +1,16 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: tokko-lummopages-web
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`lummo.buzz`) || Host(`www.lummo.buzz`) && Path('/') # kpt-set: ${host} && ${path}
+      kind: Rule
+      priority: 10
+      services:
+        - name: tokko-lummopages-web # kpt-set: ${service-name}
+          port: 3000
+  tls:
+    secretName: tokko-lummopages-web-cert
