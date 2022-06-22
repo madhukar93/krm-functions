@@ -13,6 +13,15 @@ replacements:
         fieldPaths:
           - spec.routes.0.services.0.name
   - source:
+      kind: Service
+      fieldPath: spec.ports.0.port
+    targets:
+      - select:
+          name: tokko-lummopages-web
+          kind: IngressRoute
+        fieldPaths:
+          - spec.routes.0.services.0.port
+  - source:
       kind: Certificate
       fieldPath: spec.secretName
     targets:
