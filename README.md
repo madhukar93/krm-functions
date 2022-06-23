@@ -40,6 +40,16 @@ The functions in the pipeline are invoked using
 
 `kpt fn render`
 
+### Example Usage
+
+Configure the variables in `setters.yaml` file, currently the variables that exist are:
+ - service-name
+ - service-port
+ - target-port
+ - rule
+
+Run `kpt fn render` and check the substituted values in the respective `service.yaml` and `ingress.yaml`
+
 ### Results
 
 Check the manifests to see the values being set and replaced
