@@ -1,7 +1,7 @@
 # example
 
 ## Description
-this is an example blueprint
+Example blueprint to configure Network resources such as Service, Ingress Route and Certificates.
 
 ## Usage
 
