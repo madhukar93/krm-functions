@@ -1,0 +1,27 @@
+apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: deployment1
+  annotations:
+    config.kubernetes.io/local-config: "true"
+upstream:
+  type: git
+  git:
+    repo: https://github.com/bukukasio/tokko-networking-kpt
+    directory: example
+    ref: example/v2
+upstreamLock:
+  type: git
+  git:
+    repo: https://github.com/bukukasio/tokko-networking-kpt
+    directory: example
+    ref: example/v2
+    commit: 9715602a4378a7549b9e6b7af734e03745c43a45
+info:
+  description: Set up Networking resources for tokko-k8s services
+pipeline:
+  mutators:
+  - image: gcr.io/kpt-fn/apply-setters:unstable
+    configPath: config-map.yaml
+  - image: gcr.io/kpt-fn/apply-replacements:unstable
+    configPath: apply-replacements.yaml
