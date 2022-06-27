@@ -1,0 +1,13 @@
+# Certificate for tokko-lummopages-web
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tokko-lummopages # kpt-set: ${service-name}
+spec:
+  secretName: something # kpt-set: ${secret-name}
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+  - "lummo.buzz"
+  - "www.lummo.buzz"

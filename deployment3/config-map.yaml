@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apply-setters-fn-config
+data:
+  service-name: tokko-lummopages
+  service-port: 3000
+  target-port: 3000
+  rule: Host(`lummo.buzz`) || Host(`www.lummo.buzz`) && PathPrefix(`/`)
+  secret-name: something
