@@ -10,7 +10,7 @@ spec:
     kind: Rule
     priority: 10
     services:
-    - name: tokko-lummopages # kpt-set: ${service-name}
+    - name: tokko-lummopages-web # kpt-set: ${service-name}
       port: 3000 # kpt-set: ${service-port}
   tls:
     secretName: something # kpt-set: ${secret-name}
