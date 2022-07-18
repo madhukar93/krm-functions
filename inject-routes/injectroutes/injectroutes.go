@@ -19,7 +19,48 @@ type InjectRoutes struct {
 	injectResults []*injectResult
 }
 
-func (i *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
+type Route struct {
+	Kind        string       `yaml:"kind"`
+	Match       string       `yaml:"match"`
+	Priority    int          `yaml:"priority,omitempty"`
+	MiddleWares []Middleware `yaml:"middlewares,omitempty"`
+	Services    []Service    `yaml:"services,omitempty"`
+}
+
+type Middleware struct {
+	Name      string `yaml:"name"`
+	Namespace string `yaml:"namespace"`
+}
+
+type Service struct {
+	Name               string `yaml:"name,omitempty"`
+	Namespace          string `yaml:"namespace,omitempty"`
+	PassHostHeader     bool   `yaml:"passHostHeader,omitempty"`
+	Port               int    `yaml:"port,omitempty"`
+	ResponseForwarding struct {
+		FlushInterval string `yaml:"flushInterval,omitempty"`
+	} `yaml:"responseForwarding,omitempty"`
+	Scheme           string `yaml:"scheme,omitempty"`
+	ServersTransport string `yaml:"serversTransport,omitempty"`
+	Sticky           struct {
+		Cookie struct {
+			HttpOnly bool   `yaml:"httpOnly,omitempty"`
+			Name     string `yaml:"name,omitempty"`
+			Secure   bool   `yaml:"secure,omitempty"`
+			SameSite string `yaml:"sameSite,omitempty"`
+		} `yaml:"cookie,omitempty"`
+	} `yaml:"sticky,omitempty"`
+	Strategy string `yaml:"strategy,omitempty"`
+	Weight   int    `yaml:"weight,omitempty"`
+}
+
+type functionConfig struct {
+	AppName string   `yaml:"app"`
+	Hosts   []string `yaml:"hosts"`
+	Route   Route    `yaml:"route"`
+}
+
+func (i *InjectRoutes) Filter(items []*yaml.RNode, fnConfig *yaml.RNode) ([]*yaml.RNode, error) {
 	for _, item := range items {
 		meta, err := item.GetMeta()
 		if err != nil {
@@ -29,21 +70,65 @@ func (i *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 		if meta.Kind == "IngressRoute" && meta.APIVersion == "traefik.containo.us/v1alpha1" {
 			routes, err := item.GetSlice("spec.routes")
 			if err != nil {
-				return nil, err
+				return items, err
 			}
 
-			for _, inputRoute := range functionConfig.Data.Routes {
-				for _, route := range routes {
-					exp, err := createMatchExpression(functionConfig.Domains, inputRoute)
-					if err != nil {
-						return nil, err
-					}
-					if route == exp {
-						return items, nil
-					}
+			// unmarshall fnConfig into struct
+			inputRoute, err := fnConfig.GetFieldValue("data")
+			if err != nil {
+				return items, err
+			}
 
-					// create new route object from function config and append to routes
+			var fn functionConfig
+			fnYml, err := yaml.Marshal(inputRoute)
+			if err != nil {
+				return items, err
+			}
+
+			if err := yaml.Unmarshal(fnYml, &fn); err != nil {
+				return items, err
+			}
+			fmt.Println(fn.Route)
+			////////////////////////////////////
+
+			// unmarshall routes into struct and perform operations
+			rtYaml, err := yaml.Marshal(routes)
+			if err != nil {
+				return items, err
+			}
+			var rts []Route
+			if err := yaml.Unmarshal(rtYaml, &rts); err != nil {
+				return items, err
+			}
+
+			exp, err := createMatchExpression(fn.Hosts, fn.Route.Match)
+			if err != nil {
+				return items, err
+			}
+
+			for _, route := range rts {
+				if route.Match == exp {
+					return items, nil
 				}
+			}
+			fn.Route.Match = exp
+			rts = append(rts, fn.Route)
+
+			fmt.Println(rts)
+			rtYaml, err = yaml.Marshal(rts)
+			if err != nil {
+				return items, err
+			}
+			routesObj, err := yaml.Parse(string(rtYaml))
+			if err != nil {
+				return items, err
+			}
+
+			_, err = item.Pipe(
+				yaml.LookupCreate(yaml.MappingNode, "spec"),
+				yaml.SetField("routes", routesObj))
+			if err != nil {
+				return items, err
 			}
 		}
 	}
@@ -64,6 +149,25 @@ func (i *InjectRoutes) Results() (framework.Results, error) {
 	return results, nil
 }
 
+// func (i *InjectRoutes) injectRoutes(source *yaml.RNode, route *yaml.RNode) (*yaml.RNode, error) {
+// 	// result - newinjectresul
+
+// 	data, err := source.GetFieldValue("spec.routes")
+// 	if err != nil {
+// 		return route, err
+// 	}
+
+// 	dataMap, ok := data.([]map[string]interface{})
+// 	if !ok {
+// 		err = fmt.Errorf(
+// 			"data must be a []map[string]interface, got %T",
+// 			data,
+// 		)
+// 		// result.ErrorMsg = err.Error()
+// 		return route, err
+// 	}
+// }
+
 func createMatchExpression(domains []string, expression string) (string, error) {
 	if expression == "" {
 		return "", fmt.Errorf("input string is empty")
@@ -72,5 +176,6 @@ func createMatchExpression(domains []string, expression string) (string, error) 
 		domains[i] = fmt.Sprintf("Host(`%s`)", domain)
 	}
 	newExpression := strings.Join(domains, " || ")
+	newExpression = newExpression + fmt.Sprintf(" && %s", expression)
 	return newExpression, nil
 }

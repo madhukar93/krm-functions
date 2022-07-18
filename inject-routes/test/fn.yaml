@@ -29,6 +29,11 @@ functionConfig:
   kind: SetRoutes
   metadata:
     name: setroutes-fn-config
-  data: 
-    routes:
-    - match: Host(`test1.com`)
+  data:
+    app: testapp
+    hosts:
+    - domain1.test.com
+    - domain2.test.com
+    route:
+      match: Path(`/test1`)
+      kind: Rule
