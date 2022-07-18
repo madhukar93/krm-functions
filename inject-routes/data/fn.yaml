@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-resource
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: 4molybdenum/kpt-network-resource:latest
+data:
+  routes:
+    - match: Host(`test.com`)
+      kind: Rule
+      services:
+        - name: echo-server
+          port: 80
+    - match: Host(`test-secure.com`) && Path(`/vpn`)
+      kind: Rule
+      middlewares:
+        - name: vpn-only
+          namespace: traefik
+      services:
+        - name: echo-server
+          port: 80
