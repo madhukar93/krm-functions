@@ -11,10 +11,6 @@ import (
 )
 
 func main() {
-	file, _ := os.Open("./data/fn.yaml")
-	defer file.Close()
-	os.Stdin = file
-
 	p := InjectRouteProcessor{}
 	cmd := command.Build(&p, command.StandaloneEnabled, false)
 
