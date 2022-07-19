@@ -1,6 +1,7 @@
 package injectroutes
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -8,14 +9,18 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
+const (
+	kind       = "IngressRoute"
+	apiVersion = "traefik.containo.us/v1alpha1"
+)
+
 type injectResult struct {
 	Source   *yaml.RNode
-	Target   *yaml.RNode
-	Keys     []string
+	Route    *yaml.RNode
 	ErrorMsg string
 }
-
 type InjectRoutes struct {
+	fnConfig      *yaml.RNode
 	injectResults []*injectResult
 }
 
@@ -60,76 +65,90 @@ type functionConfig struct {
 	Route   Route    `yaml:"route"`
 }
 
-func (i *InjectRoutes) Filter(items []*yaml.RNode, fnConfig *yaml.RNode) ([]*yaml.RNode, error) {
+func New(fnConfig *yaml.RNode) (*InjectRoutes, error) {
+	if fnConfig == nil {
+		return nil, errors.New("no functionConfig specified")
+	}
+
+	fn := &InjectRoutes{
+		fnConfig: fnConfig,
+	}
+	return fn, nil
+}
+
+func (i *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
+	fnConfig := i.fnConfig
+	selector := kindSelector()
+	items, err := selector.Filter(items)
+	if err != nil {
+		return items, err
+	}
+
+	result := &injectResult{} // this is optional, mainly for debugging and observability purposes
+
 	for _, item := range items {
-		meta, err := item.GetMeta()
+		routes, err := item.GetSlice("spec.routes")
 		if err != nil {
-			return nil, err
+			return items, err
 		}
 
-		if meta.Kind == "IngressRoute" && meta.APIVersion == "traefik.containo.us/v1alpha1" {
-			routes, err := item.GetSlice("spec.routes")
-			if err != nil {
-				return items, err
-			}
+		// unmarshall fnConfig into struct
+		inputRoute, err := fnConfig.GetFieldValue("data")
+		if err != nil {
+			return items, err
+		}
 
-			// unmarshall fnConfig into struct
-			inputRoute, err := fnConfig.GetFieldValue("data")
-			if err != nil {
-				return items, err
-			}
+		var fn functionConfig
+		fnYml, err := yaml.Marshal(inputRoute)
+		if err != nil {
+			return items, err
+		}
 
-			var fn functionConfig
-			fnYml, err := yaml.Marshal(inputRoute)
-			if err != nil {
-				return items, err
-			}
+		if err := yaml.Unmarshal(fnYml, &fn); err != nil {
+			return items, err
+		}
 
-			if err := yaml.Unmarshal(fnYml, &fn); err != nil {
-				return items, err
-			}
-			fmt.Println(fn.Route)
-			////////////////////////////////////
+		// unmarshall routes into struct and perform operations
+		rtYaml, err := yaml.Marshal(routes)
+		if err != nil {
+			return items, err
+		}
+		var rts []Route
+		if err := yaml.Unmarshal(rtYaml, &rts); err != nil {
+			return items, err
+		}
 
-			// unmarshall routes into struct and perform operations
-			rtYaml, err := yaml.Marshal(routes)
-			if err != nil {
-				return items, err
-			}
-			var rts []Route
-			if err := yaml.Unmarshal(rtYaml, &rts); err != nil {
-				return items, err
-			}
+		exp, err := createMatchExpression(fn.Hosts, fn.Route.Match)
+		if err != nil {
+			return items, err
+		}
 
-			exp, err := createMatchExpression(fn.Hosts, fn.Route.Match)
-			if err != nil {
-				return items, err
+		for _, route := range rts {
+			if route.Match == exp {
+				return items, nil
 			}
+		}
+		fn.Route.Match = exp
+		rts = append(rts, fn.Route)
 
-			for _, route := range rts {
-				if route.Match == exp {
-					return items, nil
-				}
-			}
-			fn.Route.Match = exp
-			rts = append(rts, fn.Route)
+		rtYaml, err = yaml.Marshal(rts)
+		if err != nil {
+			return items, err
+		}
+		routesObj, err := yaml.Parse(string(rtYaml))
+		if err != nil {
+			return items, err
+		}
 
-			fmt.Println(rts)
-			rtYaml, err = yaml.Marshal(rts)
-			if err != nil {
-				return items, err
-			}
-			routesObj, err := yaml.Parse(string(rtYaml))
-			if err != nil {
-				return items, err
-			}
+		result.Source = item
+		result.Route = routesObj
+		i.injectResults = append(i.injectResults, result)
 
-			_, err = item.Pipe(
-				yaml.LookupCreate(yaml.MappingNode, "spec"),
-				yaml.SetField("routes", routesObj))
-			if err != nil {
-				return items, err
-			}
+		_, err = item.Pipe(
+			yaml.LookupCreate(yaml.MappingNode, "spec"),
+			yaml.SetField("routes", routesObj))
+		if err != nil {
+			return items, err
 		}
 	}
 	return items, nil
@@ -144,29 +163,36 @@ func (i *InjectRoutes) Results() (framework.Results, error) {
 		return results, nil
 	}
 	for _, injectResult := range i.injectResults {
-		fmt.Println(injectResult)
+		var (
+			msg      string
+			severity framework.Severity
+			source   = fmt.Sprintf("%s %s", injectResult.Source.GetKind(), injectResult.Source.GetName())
+			route    = injectResult.Route
+		)
+		if injectResult.ErrorMsg != "" {
+			msg = fmt.Sprintf("%v failed to inject route to source %s: %s", route, source, injectResult.ErrorMsg)
+			severity = framework.Error
+		} else {
+			msg = fmt.Sprintf("injected route: %v to source: %s", route, source)
+			severity = framework.Info
+		}
+
+		result := &framework.Result{
+			Message:  msg,
+			Severity: severity,
+		}
+
+		results = append(results, result)
 	}
 	return results, nil
 }
 
-// func (i *InjectRoutes) injectRoutes(source *yaml.RNode, route *yaml.RNode) (*yaml.RNode, error) {
-// 	// result - newinjectresul
-
-// 	data, err := source.GetFieldValue("spec.routes")
-// 	if err != nil {
-// 		return route, err
-// 	}
-
-// 	dataMap, ok := data.([]map[string]interface{})
-// 	if !ok {
-// 		err = fmt.Errorf(
-// 			"data must be a []map[string]interface, got %T",
-// 			data,
-// 		)
-// 		// result.ErrorMsg = err.Error()
-// 		return route, err
-// 	}
-// }
+func kindSelector() framework.Selector {
+	return framework.Selector{
+		Kinds:       []string{kind},
+		APIVersions: []string{apiVersion},
+	}
+}
 
 func createMatchExpression(domains []string, expression string) (string, error) {
 	if expression == "" {

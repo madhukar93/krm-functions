@@ -1,20 +1,21 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
-	"github.com/bukukasio/kpt-network-resource/injectroutes"
+	"github.com/bukukasio/kpt-functions/inject-routes/injectroutes"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework/command"
 )
 
 func main() {
-	file, _ := os.Open("./test/fn.yaml")
+	file, _ := os.Open("./data/fn.yaml")
 	defer file.Close()
 	os.Stdin = file
 
-	p := ConfigMapInjectorProcessor{}
+	p := InjectRouteProcessor{}
 	cmd := command.Build(&p, command.StandaloneEnabled, false)
 
 	cmd.Short = "Inject files wrapped in KRM resources into ConfigMap keys"
@@ -26,12 +27,19 @@ func main() {
 	}
 }
 
-type ConfigMapInjectorProcessor struct{}
+type InjectRouteProcessor struct{}
 
-func (p *ConfigMapInjectorProcessor) Process(resourceList *framework.ResourceList) error {
-	injector := &injectroutes.InjectRoutes{}
+func (p *InjectRouteProcessor) Process(resourceList *framework.ResourceList) error {
+	fnConfig := resourceList.FunctionConfig
 
-	items, err := injector.Filter(resourceList.Items, resourceList.FunctionConfig)
+	if fnConfig == nil {
+		return errors.New("no function config specified")
+	}
+	injector, err := injectroutes.New(fnConfig)
+	if err != nil {
+		return err
+	}
+	items, err := injector.Filter(resourceList.Items)
 	if err != nil {
 		resourceList.Results = framework.Results{
 			&framework.Result{
@@ -43,16 +51,17 @@ func (p *ConfigMapInjectorProcessor) Process(resourceList *framework.ResourceLis
 	}
 	resourceList.Items = items
 
-	// results, err := injector.Results()
-	// if err != nil {
-	// 	resourceList.Results = framework.Results{
-	// 		&framework.Result{
-	// 			Message:  err.Error(),
-	// 			Severity: framework.Error,
-	// 		},
-	// 	}
-	// 	return resourceList.Results
-	// }
-	// resourceList.Results = results
+	results, err := injector.Results()
+	if err != nil {
+		resourceList.Results = framework.Results{
+			&framework.Result{
+				Message:  err.Error(),
+				Severity: framework.Error,
+			},
+		}
+		return resourceList.Results
+	}
+	resourceList.Results = results
+
 	return nil
 }
