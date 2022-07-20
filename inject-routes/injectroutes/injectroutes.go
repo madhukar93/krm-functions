@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	yml "github.com/ghodss/yaml"
+
+	traefik "github.com/traefik/traefik/v2/pkg/provider/kubernetes/crd/traefik/v1alpha1"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -24,45 +27,10 @@ type InjectRoutes struct {
 	injectResults []*injectResult
 }
 
-type Route struct {
-	Kind        string       `yaml:"kind"`
-	Match       string       `yaml:"match"`
-	Priority    int          `yaml:"priority,omitempty"`
-	MiddleWares []Middleware `yaml:"middlewares,omitempty"`
-	Services    []Service    `yaml:"services,omitempty"`
-}
-
-type Middleware struct {
-	Name      string `yaml:"name"`
-	Namespace string `yaml:"namespace"`
-}
-
-type Service struct {
-	Name               string `yaml:"name,omitempty"`
-	Namespace          string `yaml:"namespace,omitempty"`
-	PassHostHeader     bool   `yaml:"passHostHeader,omitempty"`
-	Port               int    `yaml:"port,omitempty"`
-	ResponseForwarding struct {
-		FlushInterval string `yaml:"flushInterval,omitempty"`
-	} `yaml:"responseForwarding,omitempty"`
-	Scheme           string `yaml:"scheme,omitempty"`
-	ServersTransport string `yaml:"serversTransport,omitempty"`
-	Sticky           struct {
-		Cookie struct {
-			HttpOnly bool   `yaml:"httpOnly,omitempty"`
-			Name     string `yaml:"name,omitempty"`
-			Secure   bool   `yaml:"secure,omitempty"`
-			SameSite string `yaml:"sameSite,omitempty"`
-		} `yaml:"cookie,omitempty"`
-	} `yaml:"sticky,omitempty"`
-	Strategy string `yaml:"strategy,omitempty"`
-	Weight   int    `yaml:"weight,omitempty"`
-}
-
 type functionConfig struct {
-	AppName string   `yaml:"app"`
-	Hosts   []string `yaml:"hosts"`
-	Route   Route    `yaml:"route"`
+	AppName string        `json:"app"`
+	Hosts   []string      `json:"hosts"`
+	Route   traefik.Route `json:"route"`
 }
 
 func New(fnConfig *yaml.RNode) (*InjectRoutes, error) {
@@ -82,7 +50,6 @@ func (i *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	result := &injectResult{} // this is optional, mainly for debugging and observability purposes
 
 	for _, item := range items {
-
 		meta, err := item.GetMeta()
 		if err != nil {
 			return items, err
@@ -101,22 +68,22 @@ func (i *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 			}
 
 			var fn functionConfig
-			fnYml, err := yaml.Marshal(inputRoute)
+			fnYml, err := yml.Marshal(inputRoute)
 			if err != nil {
 				return items, err
 			}
 
-			if err := yaml.Unmarshal(fnYml, &fn); err != nil {
+			if err := yml.Unmarshal(fnYml, &fn); err != nil {
 				return items, err
 			}
 
 			// unmarshall routes into struct and perform operations
-			rtYaml, err := yaml.Marshal(routes)
+			rtYaml, err := yml.Marshal(routes)
 			if err != nil {
 				return items, err
 			}
-			var rts []Route
-			if err := yaml.Unmarshal(rtYaml, &rts); err != nil {
+			var rts []traefik.Route
+			if err := yml.Unmarshal(rtYaml, &rts); err != nil {
 				return items, err
 			}
 
@@ -133,7 +100,7 @@ func (i *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 			fn.Route.Match = exp
 			rts = append(rts, fn.Route)
 
-			rtYaml, err = yaml.Marshal(rts)
+			rtYaml, err = yml.Marshal(rts)
 			if err != nil {
 				return items, err
 			}
@@ -146,8 +113,23 @@ func (i *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 			result.Route = routesObj
 			i.injectResults = append(i.injectResults, result)
 
-			_, err = item.Pipe(
-				yaml.LookupCreate(yaml.MappingNode, "spec"),
+			// set app name
+			err = item.PipeE(
+				yaml.Lookup("metadata"),
+				yaml.SetField("name", yaml.NewScalarRNode(fn.AppName)),
+			)
+			if err != nil {
+				return items, err
+			}
+			err = item.PipeE(
+				yaml.Lookup("spec", "tls"),
+				yaml.SetField("secretName", yaml.NewScalarRNode(fn.AppName+"-cert")),
+			)
+			if err != nil {
+				return items, err
+			}
+			err = item.PipeE(
+				yaml.Lookup("spec"),
 				yaml.SetField("routes", routesObj))
 			if err != nil {
 				return items, err
