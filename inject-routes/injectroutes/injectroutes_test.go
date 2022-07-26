@@ -106,9 +106,9 @@ functionConfig:
     hosts:
     - domain1.test.com
     - domain2.test.com
-    route:
-      match: Path('/test1')
-      kind: Rule`,
+    routes:
+      - match: Path('/test1')
+        kind: Rule`,
 		},
 	}
 	runTests(t, tests)

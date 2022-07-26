@@ -28,9 +28,9 @@ type InjectRoutes struct {
 }
 
 type functionConfig struct {
-	AppName string        `json:"app"`
-	Hosts   []string      `json:"hosts"`
-	Route   traefik.Route `json:"route"`
+	AppName string          `json:"app"`
+	Hosts   []string        `json:"hosts"`
+	Routes  []traefik.Route `json:"routes"`
 }
 
 func New(fnConfig *yaml.RNode) (*InjectRoutes, error) {
@@ -67,6 +67,7 @@ func (i *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 				return items, err
 			}
 
+			// TODO: extra fields those not in the schema is ignored, we want to exit with error
 			var fn functionConfig
 			fnYml, err := yml.Marshal(inputRoute)
 			if err != nil {
@@ -76,6 +77,8 @@ func (i *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 			if err := yml.Unmarshal(fnYml, &fn); err != nil {
 				return items, err
 			}
+
+			inputRoutes := fn.Routes // get all of the input routes from fn
 
 			// unmarshall routes into struct and perform operations
 			rtYaml, err := yml.Marshal(routes)
@@ -87,31 +90,42 @@ func (i *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 				return items, err
 			}
 
-			exp, err := createMatchExpression(fn.Hosts, fn.Route.Match)
-			if err != nil {
-				return items, err
-			}
+			for _, inputRoute := range inputRoutes {
+				exp, err := createMatchExpression(fn.Hosts, inputRoute.Match)
+				if err != nil {
+					return items, err
+				}
 
-			for _, route := range rts {
-				if route.Match == exp {
-					return items, nil
+				for _, route := range rts {
+					if route.Match == exp {
+						return items, nil
+					}
+				}
+
+				inputRoute.Match = exp
+				rts = append(rts, inputRoute)
+
+				rtYaml, err = yml.Marshal(rts)
+				if err != nil {
+					return items, err
+				}
+
+				routesObj, err := yaml.Parse(string(rtYaml))
+				if err != nil {
+					return items, err
+				}
+
+				result.Source = item
+				result.Route = routesObj
+				i.injectResults = append(i.injectResults, result)
+
+				err = item.PipeE(
+					yaml.Lookup("spec"),
+					yaml.SetField("routes", routesObj))
+				if err != nil {
+					return items, err
 				}
 			}
-			fn.Route.Match = exp
-			rts = append(rts, fn.Route)
-
-			rtYaml, err = yml.Marshal(rts)
-			if err != nil {
-				return items, err
-			}
-			routesObj, err := yaml.Parse(string(rtYaml))
-			if err != nil {
-				return items, err
-			}
-
-			result.Source = item
-			result.Route = routesObj
-			i.injectResults = append(i.injectResults, result)
 
 			// set app name
 			err = item.PipeE(
@@ -128,12 +142,7 @@ func (i *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 			if err != nil {
 				return items, err
 			}
-			err = item.PipeE(
-				yaml.Lookup("spec"),
-				yaml.SetField("routes", routesObj))
-			if err != nil {
-				return items, err
-			}
+
 		}
 	}
 
