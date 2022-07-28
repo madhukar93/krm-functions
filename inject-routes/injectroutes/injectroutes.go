@@ -44,8 +44,8 @@ func New(fnConfig *yaml.RNode) (*InjectRoutes, error) {
 	return fn, nil
 }
 
-func (i *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
-	fnConfig := i.fnConfig
+func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
+	fnConfig := in.fnConfig
 
 	result := &injectResult{} // this is optional, mainly for debugging and observability purposes
 
@@ -96,8 +96,32 @@ func (i *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 					return items, err
 				}
 
-				for _, route := range rts {
+				for i, route := range rts {
 					if route.Match == exp {
+						inputRoute.Match = exp
+						rts[i] = inputRoute
+
+						rtYaml, err = yml.Marshal(rts)
+						if err != nil {
+							return items, err
+						}
+
+						routesObj, err := yaml.Parse(string(rtYaml))
+						if err != nil {
+							return items, err
+						}
+
+						result.Source = item
+						result.Route = routesObj
+						in.injectResults = append(in.injectResults, result)
+
+						err = item.PipeE(
+							yaml.Lookup("spec"),
+							yaml.SetField("routes", routesObj))
+						if err != nil {
+							return items, err
+						}
+
 						return items, nil
 					}
 				}
@@ -117,7 +141,7 @@ func (i *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 
 				result.Source = item
 				result.Route = routesObj
-				i.injectResults = append(i.injectResults, result)
+				in.injectResults = append(in.injectResults, result)
 
 				err = item.PipeE(
 					yaml.Lookup("spec"),
@@ -168,7 +192,7 @@ func (i *InjectRoutes) Results() (framework.Results, error) {
 			msg = fmt.Sprintf("%v failed to inject route to source %s: %s", route, source, injectResult.ErrorMsg)
 			severity = framework.Error
 		} else {
-			msg = fmt.Sprintf("injected route: %v to source: %s", route, source)
+			msg = fmt.Sprintf("injected route to source: %s", source)
 			severity = framework.Info
 		}
 

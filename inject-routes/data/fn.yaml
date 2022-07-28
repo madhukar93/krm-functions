@@ -33,12 +33,10 @@ functionConfig:
   data:
     app: testapp
     hosts:
-    - domain1.test.com
-    - domain2.test.com
+    - test-secure.com
     routes:
-      - match: Path(`/test1`)
+      - match: Path(`/vpn`)
         kind: Rule
         services:
           - name: echo-server
-            port: 80
-        something: something
+            port: 443
