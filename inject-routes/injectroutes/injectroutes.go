@@ -100,20 +100,10 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 					if route.Match == exp {
 						inputRoute.Match = exp
 						rts[i] = inputRoute
-
-						rtYaml, err = yml.Marshal(rts)
+						routesObj, err := setRoutes(rts)
 						if err != nil {
 							return items, err
 						}
-
-						routesObj, err := yaml.Parse(string(rtYaml))
-						if err != nil {
-							return items, err
-						}
-
-						result.Source = item
-						result.Route = routesObj
-						in.injectResults = append(in.injectResults, result)
 
 						err = item.PipeE(
 							yaml.Lookup("spec"),
@@ -122,25 +112,20 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 							return items, err
 						}
 
+						result.Source = item
+						result.Route = routesObj
+						in.injectResults = append(in.injectResults, result)
+
 						return items, nil
 					}
 				}
 				inputRoute.Match = exp
 				rts = append(rts, inputRoute)
 
-				rtYaml, err = yml.Marshal(rts)
+				routesObj, err := setRoutes(rts)
 				if err != nil {
 					return items, err
 				}
-
-				routesObj, err := yaml.Parse(string(rtYaml))
-				if err != nil {
-					return items, err
-				}
-
-				result.Source = item
-				result.Route = routesObj
-				in.injectResults = append(in.injectResults, result)
 
 				err = item.PipeE(
 					yaml.Lookup("spec"),
@@ -148,6 +133,10 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 				if err != nil {
 					return items, err
 				}
+
+				result.Source = item
+				result.Route = routesObj
+				in.injectResults = append(in.injectResults, result)
 			}
 
 			// set app name
@@ -170,6 +159,20 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	}
 
 	return items, nil
+}
+
+func setRoutes(routes []traefik.Route) (*yaml.RNode, error) {
+	// struct to yaml.RNode
+	rtYaml, err := yml.Marshal(routes)
+	if err != nil {
+		return nil, err
+	}
+
+	obj, err := yaml.Parse(string(rtYaml))
+	if err != nil {
+		return nil, err
+	}
+	return obj, nil
 }
 
 func (i *InjectRoutes) Results() (framework.Results, error) {
