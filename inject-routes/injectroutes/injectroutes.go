@@ -28,9 +28,9 @@ type InjectRoutes struct {
 }
 
 type functionConfig struct {
-	AppName string          `json:"app"`
-	Hosts   []string        `json:"hosts"`
-	Routes  []traefik.Route `json:"routes"`
+	App    string          `yaml:"app" ,json:"app"`
+	Hosts  []string        `yaml:"hosts" ,json:"hosts"`
+	Routes []traefik.Route `yaml:"routes" ,json:"routes"`
 }
 
 func New(fnConfig *yaml.RNode) (*InjectRoutes, error) {
@@ -46,7 +46,6 @@ func New(fnConfig *yaml.RNode) (*InjectRoutes, error) {
 
 func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	fnConfig := in.fnConfig
-
 	result := &injectResult{} // this is optional, mainly for debugging and observability purposes
 
 	for _, item := range items {
@@ -56,20 +55,21 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 		}
 
 		if meta.Kind == kind && meta.APIVersion == apiVersion {
-			routes, err := item.GetSlice("spec.routes")
+			// routes, err := item.GetSlice("spec.routes")
+			routes, err := item.Pipe(yaml.LookupCreate(yaml.SequenceNode, "spec", "routes"))
 			if err != nil {
 				return items, err
 			}
 
 			// unmarshall fnConfig into struct
-			inputRoute, err := fnConfig.GetFieldValue("data")
+			data, err := fnConfig.GetFieldValue("data")
 			if err != nil {
 				return items, err
 			}
 
 			// TODO: extra fields those not in the schema is ignored, we want to exit with error
 			var fn functionConfig
-			fnYml, err := yml.Marshal(inputRoute)
+			fnYml, err := yml.Marshal(data)
 			if err != nil {
 				return items, err
 			}
@@ -125,7 +125,6 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 						return items, nil
 					}
 				}
-
 				inputRoute.Match = exp
 				rts = append(rts, inputRoute)
 
@@ -154,14 +153,14 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 			// set app name
 			err = item.PipeE(
 				yaml.Lookup("metadata"),
-				yaml.SetField("name", yaml.NewScalarRNode(fn.AppName)),
+				yaml.SetField("name", yaml.NewScalarRNode(fn.App)),
 			)
 			if err != nil {
 				return items, err
 			}
 			err = item.PipeE(
 				yaml.Lookup("spec", "tls"),
-				yaml.SetField("secretName", yaml.NewScalarRNode(fn.AppName+"-cert")),
+				yaml.SetField("secretName", yaml.NewScalarRNode(fn.App+"-cert")),
 			)
 			if err != nil {
 				return items, err
