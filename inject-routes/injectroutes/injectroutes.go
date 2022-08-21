@@ -91,7 +91,9 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 			}
 
 			for _, inputRoute := range inputRoutes {
-				exp, err := createMatchExpression(fn.Hosts, inputRoute.Match)
+				hosts := makeCopy(fn.Hosts)
+
+				exp, err := createMatchExpression(hosts, inputRoute.Match)
 				if err != nil {
 					return items, err
 				}
@@ -106,7 +108,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 						}
 
 						err = item.PipeE(
-							yaml.Lookup("spec"),
+							yaml.LookupCreate(yaml.MappingNode, "spec"),
 							yaml.SetField("routes", routesObj))
 						if err != nil {
 							return items, err
@@ -119,25 +121,26 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 						return items, nil
 					}
 				}
-				inputRoute.Match = exp
-				rts = append(rts, inputRoute)
-
-				routesObj, err := setRoutes(rts)
-				if err != nil {
-					return items, err
-				}
-
-				err = item.PipeE(
-					yaml.Lookup("spec"),
-					yaml.SetField("routes", routesObj))
-				if err != nil {
-					return items, err
-				}
-
-				result.Source = item
-				result.Route = routesObj
-				in.injectResults = append(in.injectResults, result)
+				dupRoute := inputRoute
+				dupRoute.Match = exp
+				rts = append(rts, dupRoute)
 			}
+
+			routesObj, err := setRoutes(rts)
+			if err != nil {
+				return items, err
+			}
+
+			err = item.PipeE(
+				yaml.LookupCreate(yaml.MappingNode, "spec"),
+				yaml.SetField("routes", routesObj))
+			if err != nil {
+				return items, err
+			}
+
+			result.Source = item
+			result.Route = routesObj
+			in.injectResults = append(in.injectResults, result)
 
 			// set app name
 			err = item.PipeE(
@@ -218,4 +221,10 @@ func createMatchExpression(domains []string, expression string) (string, error) 
 	newExpression := strings.Join(domains, " || ")
 	newExpression = newExpression + fmt.Sprintf(" && %s", expression)
 	return newExpression, nil
+}
+
+func makeCopy(hosts []string) []string {
+	tmp := make([]string, len(hosts))
+	copy(tmp, hosts)
+	return tmp
 }
