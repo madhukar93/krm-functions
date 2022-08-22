@@ -17,7 +17,7 @@ require (
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-acme/lego/v4 v4.7.0 // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
-	github.com/go-logr/logr v0.4.0 // indirect
+	github.com/go-logr/logr v1.2.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.3 // indirect
 	github.com/go-openapi/swag v0.19.5 // indirect
@@ -52,11 +52,13 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	k8s.io/api v0.24.4 // indirect
 	k8s.io/apiextensions-apiserver v0.21.3 // indirect
-	k8s.io/apimachinery v0.22.1 // indirect
-	k8s.io/klog/v2 v2.10.0 // indirect
+	k8s.io/apimachinery v0.24.4 // indirect
+	k8s.io/klog/v2 v2.60.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20220401212409-b28bf2818661 // indirect
-	k8s.io/utils v0.0.0-20210820185131-d34e5cb4466e // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
+	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect
+	sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )

@@ -8,6 +8,7 @@ import (
 	yml "github.com/ghodss/yaml"
 
 	traefik "github.com/traefik/traefik/v2/pkg/provider/kubernetes/crd/traefik/v1alpha1"
+	v1 "k8s.io/api/apps/v1"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -47,6 +48,12 @@ func New(fnConfig *yaml.RNode) (*InjectRoutes, error) {
 func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	fnConfig := in.fnConfig
 	result := &injectResult{} // this is optional, mainly for debugging and observability purposes
+
+	// get the deploymeny information to generate services and certificates
+	deployment, err := getDeployment(items)
+	if err != nil {
+		return items, err
+	}
 
 	for _, item := range items {
 		meta, err := item.GetMeta()
@@ -121,9 +128,8 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 						return items, nil
 					}
 				}
-				dupRoute := inputRoute
-				dupRoute.Match = exp
-				rts = append(rts, dupRoute)
+				inputRoute.Match = exp
+				rts = append(rts, inputRoute)
 			}
 
 			routesObj, err := setRoutes(rts)
@@ -209,6 +215,27 @@ func (i *InjectRoutes) Results() (framework.Results, error) {
 		results = append(results, result)
 	}
 	return results, nil
+}
+
+func getDeployment(items []*yaml.RNode) ([]v1.Deployment, error) {
+	var deployment []v1.Deployment
+	for _, item := range items {
+		meta, err := item.GetMeta()
+		if err != nil {
+			return nil, err
+		}
+		if meta.Kind == "Deployment" && meta.APIVersion == "apps/v1" {
+			dYaml, err := yml.Marshal(item)
+			if err != nil {
+				return nil, err
+			}
+
+			if err := yml.Unmarshal(dYaml, &deployment); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return deployment, nil
 }
 
 func createMatchExpression(domains []string, expression string) (string, error) {

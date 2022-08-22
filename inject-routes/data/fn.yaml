@@ -13,9 +13,9 @@ items:
 
 functionConfig:
   apiVersion: v1
-  kind: SetRoutes
+  kind: LummoNetworking
   metadata:
-    name: setroutes-fn-config
+    name: lummonetworking-fn-config
   data:
     app: testapp
     hosts:
