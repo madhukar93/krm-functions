@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	yml "github.com/ghodss/yaml"
+	yml "sigs.k8s.io/yaml"
 
+	"github.com/bukukasio/kpt-functions/inject-routes/utils"
 	traefik "github.com/traefik/traefik/v2/pkg/provider/kubernetes/crd/traefik/v1alpha1"
 	v1 "k8s.io/api/apps/v1"
+	kv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
@@ -51,8 +54,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	result := &injectResult{} // this is optional, mainly for debugging and observability purposes
 
 	// get the deploymeny information to generate services and certificates
-	deployment, err := getDeployment(items)
-	fmt.Println(deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort)
+	deploymentName, deploymentPort, err := getDeploymentData(items)
 
 	if err != nil {
 		return items, err
@@ -115,8 +117,8 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 
 						// service
 						service := traefik.Service{}
-						service.LoadBalancerSpec.Name = deployment.Spec.Template.Spec.Containers[0].Name
-						service.LoadBalancerSpec.Port = intstr.FromInt(int(deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort))
+						service.LoadBalancerSpec.Name = deploymentName
+						service.LoadBalancerSpec.Port = intstr.FromInt(int(deploymentPort))
 
 						inputRoute.Services = append(inputRoute.Services, service)
 
@@ -145,8 +147,8 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 				inputRoute.Kind = "Rule"
 				// service
 				service := traefik.Service{}
-				service.LoadBalancerSpec.Name = deployment.Spec.Template.Spec.Containers[0].Name
-				service.LoadBalancerSpec.Port = intstr.FromInt(int(deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort))
+				service.LoadBalancerSpec.Name = deploymentName
+				service.LoadBalancerSpec.Port = intstr.FromInt(int(deploymentPort))
 
 				inputRoute.Services = append(inputRoute.Services, service)
 
@@ -186,6 +188,30 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 				return items, err
 			}
 
+			// create a service object over here
+			svc := kv1.Service{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fn.App,
+				},
+				Spec: kv1.ServiceSpec{
+					Ports: []kv1.ServicePort{
+						{
+							Port: int32(deploymentPort),
+						},
+					},
+					Selector: map[string]string{
+						"app": fn.App,
+					},
+				},
+			}
+
+			err = utils.CreateService("service.yaml", svc)
+			if err != nil {
+				return items, nil
+			}
 		}
 	}
 
@@ -239,25 +265,25 @@ func (i *InjectRoutes) Results() (framework.Results, error) {
 	return results, nil
 }
 
-func getDeployment(items []*yaml.RNode) (v1.Deployment, error) {
+func getDeploymentData(items []*yaml.RNode) (string, int32, error) {
 	deployment := v1.Deployment{}
 	for _, item := range items {
 		meta, err := item.GetMeta()
 		if err != nil {
-			return deployment, err
+			return "", 0, err
 		}
 		if meta.Kind == "Deployment" && meta.APIVersion == "apps/v1" {
 			dYaml, err := yml.Marshal(item)
 			if err != nil {
-				return deployment, err
+				return "", 0, err
 			}
 
 			if err := yml.Unmarshal(dYaml, &deployment); err != nil {
-				return deployment, err
+				return "", 0, err
 			}
 		}
 	}
-	return deployment, nil
+	return deployment.Spec.Template.Spec.Containers[0].Name, deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort, nil
 }
 
 func createMatchExpression(domains []string, expression string) (string, error) {
