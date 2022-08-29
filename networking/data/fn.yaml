@@ -7,7 +7,7 @@ items:
     name: echo-server-insecure
   spec:
     entryPoints:
-      - web
+    - web
     tls:
       secretName: echo-server-insecure-cert
 - apiVersion: apps/v1
@@ -41,8 +41,6 @@ items:
               name: test-server
           - secretRef:
               name: test-server
-
-
 functionConfig:
   apiVersion: v1
   kind: LummoNetworking

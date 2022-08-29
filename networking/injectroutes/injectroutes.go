@@ -1,13 +1,15 @@
 package injectroutes
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
 	yml "sigs.k8s.io/yaml"
 
-	"github.com/bukukasio/kpt-functions/inject-routes/utils"
+	cv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	traefik "github.com/traefik/traefik/v2/pkg/provider/kubernetes/crd/traefik/v1alpha1"
 	v1 "k8s.io/api/apps/v1"
 	kv1 "k8s.io/api/core/v1"
@@ -18,8 +20,8 @@ import (
 )
 
 const (
-	kind       = "IngressRoute"
-	apiVersion = "traefik.containo.us/v1alpha1"
+	kindNetworking       = "IngressRoute"
+	apiVersionNetworking = "traefik.containo.us/v1alpha1"
 )
 
 type injectResult struct {
@@ -66,7 +68,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 			return items, err
 		}
 
-		if meta.Kind == kind && meta.APIVersion == apiVersion {
+		if meta.Kind == kindNetworking && meta.APIVersion == apiVersionNetworking {
 			// routes, err := item.GetSlice("spec.routes")
 			routes, err := item.Pipe(yaml.LookupCreate(yaml.SequenceNode, "spec", "routes"))
 			if err != nil {
@@ -189,9 +191,10 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 			}
 
 			// create a service object over here
-			svc := kv1.Service{
+			svc := &kv1.Service{
 				TypeMeta: metav1.TypeMeta{
-					Kind: "v1",
+					Kind:       "Service",
+					APIVersion: "v1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name: fn.App,
@@ -208,10 +211,46 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 				},
 			}
 
-			err = utils.CreateService("service.yaml", svc)
+			// append service to the file
+			svcJson, err := json.Marshal(svc)
+			if err != nil {
+				return nil, err
+			}
+
+			svcNode, err := yaml.ConvertJSONToYamlNode(string(svcJson))
 			if err != nil {
 				return items, nil
 			}
+
+			crt := cv1.Certificate{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Certificate",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fn.App,
+				},
+				Spec: cv1.CertificateSpec{
+					SecretName: fn.App + "-cert",
+					DNSNames:   fn.Hosts,
+					IssuerRef: cmmeta.ObjectReference{
+						Name: "letsencrypt",
+						Kind: "ClusterIssuer",
+					},
+				},
+			}
+
+			crtJson, err := json.Marshal(crt)
+			if err != nil {
+				return nil, err
+			}
+
+			crtNode, err := yaml.ConvertJSONToYamlNode(string(crtJson))
+			if err != nil {
+				return items, nil
+			}
+
+			items = append(items, svcNode, crtNode)
 		}
 	}
 
