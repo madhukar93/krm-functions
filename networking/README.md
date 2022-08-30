@@ -52,16 +52,16 @@ metadata:
 
 ## TODO:
 
-- [ ] deduce service from app (app label matches, app key in fn config)
+- [x] deduce service from app (app label matches, app key in fn config)
 
 ```
 a deployment that doesn’t have an app label is invalid - to be eventually validated using something like kubeval during CI, or admission control during apply time.
 ```
 
-- [ ] if the function doesn’t find this app (deployment/rollout with app label)
+- [x] if the function doesn’t find this app (deployment/rollout with app label) exit with error
 
-- [ ] when you find a deployment, use container port and app label in pod template.spec to create a service
+- [x] when you find a deployment, use container port and app label in pod template.spec to create a service
 
-- [ ] add vpn flag
+- [x] add vpn flag
 
 - [ ] support grpc

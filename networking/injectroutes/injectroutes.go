@@ -34,12 +34,19 @@ type InjectRoutes struct {
 	injectResults []*injectResult
 }
 
-type functionConfig struct {
-	App    string          `yaml:"app" ,json:"app"`
-	Hosts  []string        `yaml:"hosts" ,json:"hosts"`
-	Routes []traefik.Route `yaml:"routes" ,json:"routes"`
+type RouteConfig struct {
+	Match string `yaml:"match" ,json:"match"`
+	Vpn   bool   `yaml:"vpn" ,json:"vpn"`
 }
 
+type functionConfig struct {
+	App    string        `yaml:"app" ,json:"app"`
+	Hosts  []string      `yaml:"hosts" ,json:"hosts"`
+	Routes []RouteConfig `yaml:"routes" ,json:"routes"`
+}
+
+// change route to our own object
+// create inject routes file
 func New(fnConfig *yaml.RNode) (*InjectRoutes, error) {
 	if fnConfig == nil {
 		return nil, errors.New("no functionConfig specified")
@@ -57,43 +64,50 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 
 	// get the deploymeny information to generate services and certificates
 	deploymentName, deploymentPort, err := getDeploymentData(items)
-
 	if err != nil {
 		return items, err
 	}
 
+	fn, err := unwrap(fnConfig)
+	if err != nil {
+		return items, err
+	}
+
+	// check for deployment with app label
+	foundDeployment := true
 	for _, item := range items {
+		_, err := item.GetMeta()
+		if err != nil {
+			return items, err
+		}
+
+		if fn.App == deploymentName {
+			foundDeployment = true
+		}
+	}
+
+	if !foundDeployment {
+		return items, fmt.Errorf("could not find deployment with name: %s", fn.App)
+	}
+
+	foundIngressRoute := false
+	for _, item := range items {
+
 		meta, err := item.GetMeta()
 		if err != nil {
 			return items, err
 		}
 
 		if meta.Kind == kindNetworking && meta.APIVersion == apiVersionNetworking {
+			foundIngressRoute = true
 			// routes, err := item.GetSlice("spec.routes")
-			routes, err := item.Pipe(yaml.LookupCreate(yaml.SequenceNode, "spec", "routes"))
+			routes, err := item.Pipe(yaml.Lookup("spec", "routes"))
 			if err != nil {
-				return items, err
-			}
-
-			// unmarshall fnConfig into struct
-			data, err := fnConfig.GetFieldValue("data")
-			if err != nil {
-				return items, err
-			}
-
-			// TODO: extra fields those not in the schema is ignored, we want to exit with error
-			var fn functionConfig
-			fnYml, err := yml.Marshal(data)
-			if err != nil {
-				return items, err
-			}
-
-			if err := yml.Unmarshal(fnYml, &fn); err != nil {
 				return items, err
 			}
 
 			inputRoutes := fn.Routes // get all of the input routes from fn
-
+			//tempRoutes := []traefik.Route{}
 			// unmarshall routes into struct and perform operations
 			rtYaml, err := yml.Marshal(routes)
 			if err != nil {
@@ -112,19 +126,26 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 					return items, err
 				}
 
+				tempRoute := traefik.Route{}
 				for i, route := range rts {
 					if route.Match == exp {
-						inputRoute.Match = exp
-						inputRoute.Kind = "Rule"
+						tempRoute.Match = exp
+						tempRoute.Kind = "Rule"
 
 						// service
 						service := traefik.Service{}
 						service.LoadBalancerSpec.Name = deploymentName
 						service.LoadBalancerSpec.Port = intstr.FromInt(int(deploymentPort))
 
-						inputRoute.Services = append(inputRoute.Services, service)
+						tempRoute.Services = append(tempRoute.Services, service)
 
-						rts[i] = inputRoute
+						if inputRoute.Vpn {
+							tempRoute.Middlewares = append(tempRoute.Middlewares, traefik.MiddlewareRef{
+								Name:      "vpn-only",
+								Namespace: "traefik",
+							})
+						}
+						rts[i] = tempRoute
 						routesObj, err := setRoutes(rts)
 
 						if err != nil {
@@ -145,16 +166,23 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 						return items, nil
 					}
 				}
-				inputRoute.Match = exp
-				inputRoute.Kind = "Rule"
+				tempRoute.Match = exp
+				tempRoute.Kind = "Rule"
 				// service
 				service := traefik.Service{}
 				service.LoadBalancerSpec.Name = deploymentName
 				service.LoadBalancerSpec.Port = intstr.FromInt(int(deploymentPort))
 
-				inputRoute.Services = append(inputRoute.Services, service)
+				tempRoute.Services = append(tempRoute.Services, service)
 
-				rts = append(rts, inputRoute)
+				if inputRoute.Vpn {
+					tempRoute.Middlewares = append(tempRoute.Middlewares, traefik.MiddlewareRef{
+						Name:      "vpn-only",
+						Namespace: "traefik",
+					})
+				}
+
+				rts = append(rts, tempRoute)
 			}
 
 			routesObj, err := setRoutes(rts)
@@ -190,71 +218,153 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 				return items, err
 			}
 
-			// create a service object over here
-			svc := &kv1.Service{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Service",
-					APIVersion: "v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fn.App,
-				},
-				Spec: kv1.ServiceSpec{
-					Ports: []kv1.ServicePort{
-						{
-							Port: int32(deploymentPort),
-						},
-					},
-					Selector: map[string]string{
-						"app": fn.App,
-					},
-				},
-			}
-
-			// append service to the file
-			svcJson, err := json.Marshal(svc)
+			serviceNode, err := generateService(fn, deploymentPort)
 			if err != nil {
-				return nil, err
+				return items, err
 			}
 
-			svcNode, err := yaml.ConvertJSONToYamlNode(string(svcJson))
+			certificateNode, err := generateCertificate(fn)
 			if err != nil {
-				return items, nil
+				return items, err
 			}
 
-			crt := cv1.Certificate{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Certificate",
-					APIVersion: "v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fn.App,
-				},
-				Spec: cv1.CertificateSpec{
-					SecretName: fn.App + "-cert",
-					DNSNames:   fn.Hosts,
-					IssuerRef: cmmeta.ObjectReference{
-						Name: "letsencrypt",
-						Kind: "ClusterIssuer",
-					},
-				},
-			}
-
-			crtJson, err := json.Marshal(crt)
-			if err != nil {
-				return nil, err
-			}
-
-			crtNode, err := yaml.ConvertJSONToYamlNode(string(crtJson))
-			if err != nil {
-				return items, nil
-			}
-
-			items = append(items, svcNode, crtNode)
+			items = append(items, serviceNode, certificateNode)
 		}
 	}
 
+	if !foundIngressRoute {
+		ingressRoute := traefik.IngressRoute{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       kindNetworking,
+				APIVersion: apiVersionNetworking,
+			},
+
+			ObjectMeta: metav1.ObjectMeta{
+				Name: fn.App,
+			},
+
+			Spec: traefik.IngressRouteSpec{},
+		}
+
+		for _, inputRoute := range fn.Routes {
+			hosts := makeCopy(fn.Hosts)
+
+			exp, err := createMatchExpression(hosts, inputRoute.Match)
+			if err != nil {
+				return items, err
+			}
+			// service
+			service := traefik.Service{}
+			service.LoadBalancerSpec.Name = deploymentName
+			service.LoadBalancerSpec.Port = intstr.FromInt(int(deploymentPort))
+
+			newRoute := traefik.Route{
+				Match: exp,
+				Kind:  "Rule",
+				Services: []traefik.Service{
+					service,
+				},
+			}
+
+			if inputRoute.Vpn {
+				newRoute.Middlewares = append(newRoute.Middlewares, traefik.MiddlewareRef{
+					Name:      "vpn-only",
+					Namespace: "traefik",
+				})
+			}
+			ingressRoute.Spec.Routes = append(ingressRoute.Spec.Routes, newRoute)
+		}
+
+		ingressRouteNode, err := toRNode(ingressRoute)
+		if err != nil {
+			return items, err
+		}
+
+		serviceNode, err := generateService(fn, deploymentPort)
+		if err != nil {
+			return items, err
+		}
+
+		certificateNode, err := generateCertificate(fn)
+		if err != nil {
+			return items, err
+		}
+
+		items = append(items, ingressRouteNode, serviceNode, certificateNode)
+	}
 	return items, nil
+}
+
+func unwrap(fnConfig *yaml.RNode) (*functionConfig, error) {
+	fn := &functionConfig{}
+	// unmarshall fnConfig into struct
+	data, err := fnConfig.GetFieldValue("data")
+	if err != nil {
+		return nil, err
+	}
+
+	fnYml, err := yml.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := yml.Unmarshal(fnYml, &fn); err != nil {
+		return nil, err
+	}
+
+	return fn, nil
+}
+
+func toRNode(obj interface{}) (*yaml.RNode, error) {
+	switch v := obj.(type) {
+	case cv1.Certificate:
+		{
+			j, err := json.Marshal(v)
+			if err != nil {
+				return nil, err
+			}
+
+			node, err := yaml.ConvertJSONToYamlNode(string(j))
+			if err != nil {
+				return nil, err
+			}
+			return node, nil
+		}
+
+	case kv1.Service:
+		{
+			j, err := json.Marshal(v)
+			if err != nil {
+				return nil, err
+			}
+
+			node, err := yaml.ConvertJSONToYamlNode(string(j))
+			if err != nil {
+				return nil, err
+			}
+			return node, nil
+		}
+
+	case traefik.IngressRoute:
+		{
+			j, err := json.Marshal(v)
+			if err != nil {
+				return nil, err
+			}
+
+			node, err := yaml.ConvertJSONToYamlNode(string(j))
+			if err != nil {
+				return nil, err
+			}
+			return node, nil
+		}
+
+	default:
+		{
+			fmt.Println(v)
+			return nil, errors.New("unknown type can't convert")
+		}
+	}
 }
 
 func setRoutes(routes []traefik.Route) (*yaml.RNode, error) {
@@ -323,6 +433,64 @@ func getDeploymentData(items []*yaml.RNode) (string, int32, error) {
 		}
 	}
 	return deployment.Spec.Template.Spec.Containers[0].Name, deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort, nil
+}
+
+func generateService(fn *functionConfig, deploymentPort int32) (*yaml.RNode, error) {
+	// create a service object over here
+	service := kv1.Service{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Service",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fn.App,
+		},
+		Spec: kv1.ServiceSpec{
+			Ports: []kv1.ServicePort{
+				{
+					Port: int32(deploymentPort),
+				},
+			},
+			Selector: map[string]string{
+				"app": fn.App,
+			},
+		},
+	}
+
+	// append service to the file
+	serviceNode, err := toRNode(service)
+	if err != nil {
+		return nil, err
+	}
+	return serviceNode, nil
+}
+
+func generateCertificate(fn *functionConfig) (*yaml.RNode, error) {
+
+	certificate := cv1.Certificate{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Certificate",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fn.App,
+		},
+		Spec: cv1.CertificateSpec{
+			SecretName: fn.App + "-cert",
+			DNSNames:   fn.Hosts,
+			IssuerRef: cmmeta.ObjectReference{
+				Name: "letsencrypt",
+				Kind: "ClusterIssuer",
+			},
+		},
+	}
+
+	certificateNode, err := toRNode(certificate)
+	if err != nil {
+		return nil, err
+	}
+
+	return certificateNode, nil
 }
 
 func createMatchExpression(domains []string, expression string) (string, error) {
