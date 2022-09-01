@@ -135,7 +135,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 						// service
 						service := traefik.Service{}
 						service.LoadBalancerSpec.Name = deploymentName
-						service.LoadBalancerSpec.Port = intstr.FromInt(int(deploymentPort))
+						service.LoadBalancerSpec.Port = intstr.FromInt(80)
 
 						tempRoute.Services = append(tempRoute.Services, service)
 
@@ -171,7 +171,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 				// service
 				service := traefik.Service{}
 				service.LoadBalancerSpec.Name = deploymentName
-				service.LoadBalancerSpec.Port = intstr.FromInt(int(deploymentPort))
+				service.LoadBalancerSpec.Port = intstr.FromInt(80)
 
 				tempRoute.Services = append(tempRoute.Services, service)
 
@@ -256,7 +256,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 			// service
 			service := traefik.Service{}
 			service.LoadBalancerSpec.Name = deploymentName
-			service.LoadBalancerSpec.Port = intstr.FromInt(int(deploymentPort))
+			service.LoadBalancerSpec.Port = intstr.FromInt(80)
 
 			newRoute := traefik.Route{
 				Match: exp,
@@ -448,7 +448,8 @@ func generateService(fn *functionConfig, deploymentPort int32) (*yaml.RNode, err
 		Spec: kv1.ServiceSpec{
 			Ports: []kv1.ServicePort{
 				{
-					Port: int32(deploymentPort),
+					Port:       80,
+					TargetPort: intstr.IntOrString(intstr.FromInt(int(deploymentPort))),
 				},
 			},
 			Selector: map[string]string{
