@@ -1,15 +1,6 @@
 apiVersion: config.kubernetes.io/v1
 kind: ResourceList
 items:
-- apiVersion: traefik.containo.us/v1alpha1
-  kind: IngressRoute
-  metadata:
-    name: echo-server-insecure
-  spec:
-    entryPoints:
-    - web
-    tls:
-      secretName: echo-server-insecure-cert
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
@@ -53,3 +44,4 @@ functionConfig:
     routes:
     - match: Path(`/vpn`)
     - match: Path(`/hello`)
+    

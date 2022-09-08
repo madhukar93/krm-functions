@@ -43,6 +43,7 @@ type functionConfig struct {
 	App    string        `yaml:"app" ,json:"app"`
 	Hosts  []string      `yaml:"hosts" ,json:"hosts"`
 	Routes []RouteConfig `yaml:"routes" ,json:"routes"`
+	Grpc   bool          `yaml:"grpc" ,json:"grpc"`
 }
 
 // change route to our own object
@@ -60,7 +61,7 @@ func New(fnConfig *yaml.RNode) (*InjectRoutes, error) {
 
 func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	fnConfig := in.fnConfig
-	result := &injectResult{} // this is optional, mainly for debugging and observability purposes
+	//result := &injectResult{} // this is optional, mainly for debugging and observability purposes
 
 	// get the deploymeny information to generate services and certificates
 	deploymentName, deploymentPort, err := getDeploymentData(items)
@@ -90,149 +91,21 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 		return items, fmt.Errorf("could not find deployment with name: %s", fn.App)
 	}
 
-	foundIngressRoute := false
-	for _, item := range items {
+	// delete all the existing services, ingress and certificates
+	out := []*yaml.RNode{}
 
-		meta, err := item.GetMeta()
+	for _, resource := range items {
+		meta, err := resource.GetMeta()
 		if err != nil {
 			return items, err
 		}
 
-		if meta.Kind == kindNetworking && meta.APIVersion == apiVersionNetworking {
-			foundIngressRoute = true
-			// routes, err := item.GetSlice("spec.routes")
-			routes, err := item.Pipe(yaml.Lookup("spec", "routes"))
-			if err != nil {
-				return items, err
-			}
-
-			inputRoutes := fn.Routes // get all of the input routes from fn
-			//tempRoutes := []traefik.Route{}
-			// unmarshall routes into struct and perform operations
-			rtYaml, err := yml.Marshal(routes)
-			if err != nil {
-				return items, err
-			}
-			var rts []traefik.Route
-			if err := yml.Unmarshal(rtYaml, &rts); err != nil {
-				return items, err
-			}
-
-			for _, inputRoute := range inputRoutes {
-				hosts := makeCopy(fn.Hosts)
-
-				exp, err := createMatchExpression(hosts, inputRoute.Match)
-				if err != nil {
-					return items, err
-				}
-
-				tempRoute := traefik.Route{}
-				for i, route := range rts {
-					if route.Match == exp {
-						tempRoute.Match = exp
-						tempRoute.Kind = "Rule"
-
-						// service
-						service := traefik.Service{}
-						service.LoadBalancerSpec.Name = deploymentName
-						service.LoadBalancerSpec.Port = intstr.FromInt(80)
-
-						tempRoute.Services = append(tempRoute.Services, service)
-
-						if inputRoute.Vpn {
-							tempRoute.Middlewares = append(tempRoute.Middlewares, traefik.MiddlewareRef{
-								Name:      "vpn-only",
-								Namespace: "traefik",
-							})
-						}
-						rts[i] = tempRoute
-						routesObj, err := setRoutes(rts)
-
-						if err != nil {
-							return items, err
-						}
-
-						err = item.PipeE(
-							yaml.LookupCreate(yaml.MappingNode, "spec"),
-							yaml.SetField("routes", routesObj))
-						if err != nil {
-							return items, err
-						}
-
-						result.Source = item
-						result.Route = routesObj
-						in.injectResults = append(in.injectResults, result)
-
-						return items, nil
-					}
-				}
-				tempRoute.Match = exp
-				tempRoute.Kind = "Rule"
-				// service
-				service := traefik.Service{}
-				service.LoadBalancerSpec.Name = deploymentName
-				service.LoadBalancerSpec.Port = intstr.FromInt(80)
-
-				tempRoute.Services = append(tempRoute.Services, service)
-
-				if inputRoute.Vpn {
-					tempRoute.Middlewares = append(tempRoute.Middlewares, traefik.MiddlewareRef{
-						Name:      "vpn-only",
-						Namespace: "traefik",
-					})
-				}
-
-				rts = append(rts, tempRoute)
-			}
-
-			routesObj, err := setRoutes(rts)
-			if err != nil {
-				return items, err
-			}
-
-			err = item.PipeE(
-				yaml.LookupCreate(yaml.MappingNode, "spec"),
-				yaml.SetField("routes", routesObj))
-			if err != nil {
-				return items, err
-			}
-
-			result.Source = item
-			result.Route = routesObj
-			in.injectResults = append(in.injectResults, result)
-
-			// set app name
-			err = item.PipeE(
-				yaml.Lookup("metadata"),
-				yaml.SetField("name", yaml.NewScalarRNode(fn.App)),
-			)
-			if err != nil {
-				return items, err
-			}
-			err = item.PipeE(
-				yaml.Lookup("spec", "tls"),
-				yaml.SetField("secretName", yaml.NewScalarRNode(fn.App+"-cert")),
-			)
-
-			if err != nil {
-				return items, err
-			}
-
-			serviceNode, err := generateService(fn, deploymentPort)
-			if err != nil {
-				return items, err
-			}
-
-			certificateNode, err := generateCertificate(fn)
-			if err != nil {
-				return items, err
-			}
-
-			items = append(items, serviceNode, certificateNode)
+		if meta.Kind != "Service" && meta.Kind != "IngressRoute" && meta.Kind != "Certificate" {
+			out = append(out, resource)
 		}
 	}
 
-	if !foundIngressRoute {
+	if !fn.Grpc {
 		ingressRoute := traefik.IngressRoute{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       kindNetworking,
@@ -251,7 +124,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 
 			exp, err := createMatchExpression(hosts, inputRoute.Match)
 			if err != nil {
-				return items, err
+				return out, err
 			}
 			// service
 			service := traefik.Service{}
@@ -277,22 +150,65 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 
 		ingressRouteNode, err := toRNode(ingressRoute)
 		if err != nil {
-			return items, err
+			return out, err
 		}
 
 		serviceNode, err := generateService(fn, deploymentPort)
 		if err != nil {
-			return items, err
+			return out, err
 		}
 
 		certificateNode, err := generateCertificate(fn)
 		if err != nil {
-			return items, err
+			return out, err
 		}
 
-		items = append(items, ingressRouteNode, serviceNode, certificateNode)
+		out = append(out, ingressRouteNode, serviceNode, certificateNode)
 	}
-	return items, nil
+
+	if fn.Grpc {
+		serviceNode, err := generateService(fn, deploymentPort)
+		if err != nil {
+			return out, err
+		}
+
+		// service
+		service := traefik.Service{}
+		service.LoadBalancerSpec.Name = deploymentName
+		service.LoadBalancerSpec.Port = intstr.FromInt(80)
+
+		ingressRoute := traefik.IngressRoute{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       kindNetworking,
+				APIVersion: apiVersionNetworking,
+			},
+
+			ObjectMeta: metav1.ObjectMeta{
+				Name: fn.App,
+			},
+
+			Spec: traefik.IngressRouteSpec{
+				Routes: []traefik.Route{
+					{
+						Kind:  "Rule",
+						Match: fmt.Sprintf("Host(`%s.internal.bukukas.k8s`)", fn.App),
+						Services: []traefik.Service{
+							service,
+						},
+					},
+				},
+			},
+		}
+
+		ingressRouteNode, err := toRNode(ingressRoute)
+		if err != nil {
+			return out, err
+		}
+		out = append(out, serviceNode, ingressRouteNode)
+		return out, err
+	}
+
+	return out, nil
 }
 
 func unwrap(fnConfig *yaml.RNode) (*functionConfig, error) {
@@ -365,20 +281,6 @@ func toRNode(obj interface{}) (*yaml.RNode, error) {
 			return nil, errors.New("unknown type can't convert")
 		}
 	}
-}
-
-func setRoutes(routes []traefik.Route) (*yaml.RNode, error) {
-	// struct to yaml.RNode
-	rtYaml, err := yml.Marshal(routes)
-	if err != nil {
-		return nil, err
-	}
-
-	obj, err := yaml.Parse(string(rtYaml))
-	if err != nil {
-		return nil, err
-	}
-	return obj, nil
 }
 
 func (i *InjectRoutes) Results() (framework.Results, error) {
