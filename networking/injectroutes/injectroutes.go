@@ -35,15 +35,15 @@ type InjectRoutes struct {
 }
 
 type RouteConfig struct {
-	Match string `yaml:"match" ,json:"match"`
-	Vpn   bool   `yaml:"vpn" ,json:"vpn"`
+	Match string `yaml:"match ,omitempty" ,json:"match, omitempty"`
+	Vpn   bool   `yaml:"vpn ,omitempty" ,json:"vpn ,omitempty"`
+	Grpc  bool   `yaml:"grpc ,omitempty" ,json:"grpc ,omitempty"`
 }
 
 type functionConfig struct {
 	App    string        `yaml:"app" ,json:"app"`
 	Hosts  []string      `yaml:"hosts" ,json:"hosts"`
 	Routes []RouteConfig `yaml:"routes" ,json:"routes"`
-	Grpc   bool          `yaml:"grpc" ,json:"grpc"`
 }
 
 // change route to our own object
@@ -105,23 +105,37 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 		}
 	}
 
-	if !fn.Grpc {
-		ingressRoute := traefik.IngressRoute{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       kindNetworking,
-				APIVersion: apiVersionNetworking,
-			},
+	//if !fn.Grpc {
+	ingressRoute := traefik.IngressRoute{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       kindNetworking,
+			APIVersion: apiVersionNetworking,
+		},
 
-			ObjectMeta: metav1.ObjectMeta{
-				Name: fn.App,
-			},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fn.App,
+		},
 
-			Spec: traefik.IngressRouteSpec{},
-		}
+		Spec: traefik.IngressRouteSpec{},
+	}
 
-		for _, inputRoute := range fn.Routes {
-			hosts := makeCopy(fn.Hosts)
+	ingressRouteGrpc := traefik.IngressRoute{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       kindNetworking,
+			APIVersion: apiVersionNetworking,
+		},
 
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fn.App,
+		},
+
+		Spec: traefik.IngressRouteSpec{},
+	}
+
+	for _, inputRoute := range fn.Routes {
+		hosts := makeCopy(fn.Hosts)
+
+		if !inputRoute.Grpc {
 			exp, err := createMatchExpression(hosts, inputRoute.Match)
 			if err != nil {
 				return out, err
@@ -146,68 +160,50 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 				})
 			}
 			ingressRoute.Spec.Routes = append(ingressRoute.Spec.Routes, newRoute)
+		} else {
+			if err != nil {
+				return out, err
+			}
+			// service
+			service := traefik.Service{}
+			service.LoadBalancerSpec.Name = deploymentName
+			service.LoadBalancerSpec.Port = intstr.FromInt(80)
+			service.LoadBalancerSpec.PassHostHeader = &[]bool{true}[0]
+			service.LoadBalancerSpec.Scheme = "h2c"
+
+			newRoute := traefik.Route{
+				Match: fmt.Sprintf("Host(`%s.internal.bukukas.k8s`)", fn.App),
+				Kind:  "Rule",
+				Services: []traefik.Service{
+					service,
+				},
+			}
+			ingressRouteGrpc.Spec.Routes = append(ingressRouteGrpc.Spec.Routes, newRoute)
 		}
 
-		ingressRouteNode, err := toRNode(ingressRoute)
-		if err != nil {
-			return out, err
-		}
-
-		serviceNode, err := generateService(fn, deploymentPort)
-		if err != nil {
-			return out, err
-		}
-
-		certificateNode, err := generateCertificate(fn)
-		if err != nil {
-			return out, err
-		}
-
-		out = append(out, ingressRouteNode, serviceNode, certificateNode)
 	}
 
-	if fn.Grpc {
-		serviceNode, err := generateService(fn, deploymentPort)
-		if err != nil {
-			return out, err
-		}
-
-		// service
-		service := traefik.Service{}
-		service.LoadBalancerSpec.Name = deploymentName
-		service.LoadBalancerSpec.Port = intstr.FromInt(80)
-
-		ingressRoute := traefik.IngressRoute{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       kindNetworking,
-				APIVersion: apiVersionNetworking,
-			},
-
-			ObjectMeta: metav1.ObjectMeta{
-				Name: fn.App,
-			},
-
-			Spec: traefik.IngressRouteSpec{
-				Routes: []traefik.Route{
-					{
-						Kind:  "Rule",
-						Match: fmt.Sprintf("Host(`%s.internal.bukukas.k8s`)", fn.App),
-						Services: []traefik.Service{
-							service,
-						},
-					},
-				},
-			},
-		}
-
-		ingressRouteNode, err := toRNode(ingressRoute)
-		if err != nil {
-			return out, err
-		}
-		out = append(out, serviceNode, ingressRouteNode)
+	ingressRouteNode, err := toRNode(ingressRoute)
+	if err != nil {
 		return out, err
 	}
 
+	ingressRouteNodeGrpc, err := toRNode(ingressRouteGrpc)
+	if err != nil {
+		return out, err
+	}
+
+	serviceNode, err := generateService(fn, deploymentPort)
+	if err != nil {
+		return out, err
+	}
+
+	certificateNode, err := generateCertificate(fn)
+	if err != nil {
+		return out, err
+	}
+
+	out = append(out, ingressRouteNode, ingressRouteNodeGrpc, serviceNode, certificateNode)
 	return out, nil
 }
 

@@ -44,4 +44,5 @@ functionConfig:
     routes:
     - match: Path(`/vpn`)
     - match: Path(`/hello`)
+    - grpc: true
     
