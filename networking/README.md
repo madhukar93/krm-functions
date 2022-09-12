@@ -12,15 +12,15 @@ metadata:
   name: test
 spec:
   app: test-server
-  grpc: true
-  domains:
+  grpc: true # new ingressroute with only grpc stuff - always internal, uses some fake domain, uses web entrypoint, scheme: h2c
+  domains: # creates certs, host matching rules
   - a.test.com
   - b.test.com
-  routes:
-  - match: Path(`/hello`)
+  routes: # routes to service for the port named https
+  # ingressroute entrypoint is websecure
+  - match: Path(`/hello`) # these will always be https
     vpn: true
   - match: Path(`/world`)
-  - grpc: true
 ---
 # output
 kind: Certificate
