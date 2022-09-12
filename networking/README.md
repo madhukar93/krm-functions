@@ -1,4 +1,4 @@
-# Inject Routes 
+# Inject Routes
 
 Function to generate network resources
 
@@ -8,8 +8,11 @@ Function to generate network resources
 ---
 # input
 kind: LummoNetworking
+metadata:
+  name: test
 spec:
   app: test-server
+  grpc: true
   domains:
   - a.test.com
   - b.test.com
@@ -17,6 +20,7 @@ spec:
   - match: Path(`/hello`)
     vpn: true
   - match: Path(`/world`)
+  - grpc: true
 ---
 # output
 kind: Certificate
@@ -50,7 +54,7 @@ metadata:
   ...
 ```
 
-## TODO:
+## TODO
 
 - [x] deduce service from app (app label matches, app key in fn config)
 

@@ -13,37 +13,37 @@ This repository will contain various krm-functions that produce k8s configuratio
 
 ### Networking
 
-sets up k8s network resources like ingress rules, ssl certs, load balancers needed to make services talk to each other
-and the outside world.
+sets up k8s network resources like ingress rules, ssl certs,
+load balancers needed to make services talk to each other and
+the outside world.
+
+```yaml
+kind: LummoNetworking
+part-of: foobar
+app: foobar-api
+domains:
+- a.test.com
+- b.test.com
+grpc: true
+routes:
+- match: Path(`/hello`)
+  vpn: true
+- match: Path(`/world`)
+```
 
 ## Workloads
 
 runs your containers for servers and jobs
 
 ```yaml
-# workloads
 ---
-kind: Server
-app: foobar
-port: 80
+kind: Deployment
+part-of: foobar
+app: foobar-api
 container:
   command: ["python", "server.py"]
   image: foobar
----
-kind: cron
-app: foobar
-name:
-schedule: * * * */10
-container:
-  command: ["python", "cron.py"]
-  image: test-server-job
----
-kind: job
-app: foobar
-name: job
-container:
-  command: ["python", "job.py"]
-  image: test-server-job
+  port: 80
 ```
 
 ## Design priciples
@@ -88,6 +88,7 @@ resources on the server side which is very different from the implementation we 
 
 - <https://oam.dev/> <https://github.com/oam-dev/spec>
 - <https://github.com/GoogleContainerTools/kpt>
+- <https://github.com/GoogleContainerTools/kpt-backstage-plugins>
 - <https://crossplane.io/>
 - <https://kubevela.io/>
 
