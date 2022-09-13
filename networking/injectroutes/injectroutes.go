@@ -37,12 +37,12 @@ type InjectRoutes struct {
 type RouteConfig struct {
 	Match string `yaml:"match ,omitempty" ,json:"match, omitempty"`
 	Vpn   bool   `yaml:"vpn ,omitempty" ,json:"vpn ,omitempty"`
-	Grpc  bool   `yaml:"grpc ,omitempty" ,json:"grpc ,omitempty"`
 }
 
 type functionConfig struct {
 	App    string        `yaml:"app" ,json:"app"`
 	Hosts  []string      `yaml:"hosts" ,json:"hosts"`
+	Grpc   bool          `yaml:"grpc ,omitempty" ,json:"grpc ,omitempty"`
 	Routes []RouteConfig `yaml:"routes" ,json:"routes"`
 }
 
@@ -64,7 +64,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	//result := &injectResult{} // this is optional, mainly for debugging and observability purposes
 
 	// get the deploymeny information to generate services and certificates
-	deploymentName, deploymentPort, err := getDeploymentData(items)
+	deploymentName, httpsPort, grpcPort, err := getDeploymentData(items)
 	if err != nil {
 		return items, err
 	}
@@ -135,52 +135,53 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	for _, inputRoute := range fn.Routes {
 		hosts := makeCopy(fn.Hosts)
 
-		if !inputRoute.Grpc {
-			exp, err := createMatchExpression(hosts, inputRoute.Match)
-			if err != nil {
-				return out, err
-			}
-			// service
-			service := traefik.Service{}
-			service.LoadBalancerSpec.Name = deploymentName
-			service.LoadBalancerSpec.Port = intstr.FromInt(80)
+		exp, err := createMatchExpression(hosts, inputRoute.Match)
+		if err != nil {
+			return out, err
+		}
+		// service
+		service := traefik.Service{}
+		service.LoadBalancerSpec.Name = deploymentName
+		service.LoadBalancerSpec.Port = intstr.FromInt(80)
 
-			newRoute := traefik.Route{
-				Match: exp,
-				Kind:  "Rule",
-				Services: []traefik.Service{
-					service,
-				},
-			}
-
-			if inputRoute.Vpn {
-				newRoute.Middlewares = append(newRoute.Middlewares, traefik.MiddlewareRef{
-					Name:      "vpn-only",
-					Namespace: "traefik",
-				})
-			}
-			ingressRoute.Spec.Routes = append(ingressRoute.Spec.Routes, newRoute)
-		} else {
-			if err != nil {
-				return out, err
-			}
-			// service
-			service := traefik.Service{}
-			service.LoadBalancerSpec.Name = deploymentName
-			service.LoadBalancerSpec.Port = intstr.FromInt(80)
-			service.LoadBalancerSpec.PassHostHeader = &[]bool{true}[0]
-			service.LoadBalancerSpec.Scheme = "h2c"
-
-			newRoute := traefik.Route{
-				Match: fmt.Sprintf("Host(`%s.internal.bukukas.k8s`)", fn.App),
-				Kind:  "Rule",
-				Services: []traefik.Service{
-					service,
-				},
-			}
-			ingressRouteGrpc.Spec.Routes = append(ingressRouteGrpc.Spec.Routes, newRoute)
+		newRoute := traefik.Route{
+			Match: exp,
+			Kind:  "Rule",
+			Services: []traefik.Service{
+				service,
+			},
 		}
 
+		if inputRoute.Vpn {
+			newRoute.Middlewares = append(newRoute.Middlewares, traefik.MiddlewareRef{
+				Name:      "vpn-only",
+				Namespace: "traefik",
+			})
+		}
+		ingressRoute.Spec.Routes = append(ingressRoute.Spec.Routes, newRoute)
+	}
+
+	if fn.Grpc {
+		if grpcPort == 0 {
+			// grpc port not found on deployment
+			err = errors.New("grpc port not found on deployment")
+			return nil, err
+		}
+		// service
+		service := traefik.Service{}
+		service.LoadBalancerSpec.Name = deploymentName
+		service.LoadBalancerSpec.Port = intstr.FromInt(int(grpcPort))
+		service.LoadBalancerSpec.PassHostHeader = &[]bool{true}[0]
+		service.LoadBalancerSpec.Scheme = "h2c"
+
+		newRoute := traefik.Route{
+			Match: fmt.Sprintf("Host(`%s.internal.bukukas.k8s`)", fn.App), // fake domain currently
+			Kind:  "Rule",
+			Services: []traefik.Service{
+				service,
+			},
+		}
+		ingressRouteGrpc.Spec.Routes = append(ingressRouteGrpc.Spec.Routes, newRoute)
 	}
 
 	ingressRouteNode, err := toRNode(ingressRoute)
@@ -193,7 +194,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 		return out, err
 	}
 
-	serviceNode, err := generateService(fn, deploymentPort)
+	serviceNode, err := generateService(fn, httpsPort, grpcPort)
 	if err != nil {
 		return out, err
 	}
@@ -203,7 +204,11 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 		return out, err
 	}
 
-	out = append(out, ingressRouteNode, ingressRouteNodeGrpc, serviceNode, certificateNode)
+	if fn.Grpc {
+		out = append(out, ingressRouteNode, ingressRouteNodeGrpc, serviceNode, certificateNode)
+	} else {
+		out = append(out, ingressRouteNode, serviceNode, certificateNode)
+	}
 	return out, nil
 }
 
@@ -312,28 +317,42 @@ func (i *InjectRoutes) Results() (framework.Results, error) {
 	return results, nil
 }
 
-func getDeploymentData(items []*yaml.RNode) (string, int32, error) {
+func getDeploymentData(items []*yaml.RNode) (string, int32, int32, error) {
 	deployment := v1.Deployment{}
 	for _, item := range items {
 		meta, err := item.GetMeta()
 		if err != nil {
-			return "", 0, err
+			return "", 0, 0, err
 		}
 		if meta.Kind == "Deployment" && meta.APIVersion == "apps/v1" {
 			dYaml, err := yml.Marshal(item)
 			if err != nil {
-				return "", 0, err
+				return "", 0, 0, err
 			}
 
 			if err := yml.Unmarshal(dYaml, &deployment); err != nil {
-				return "", 0, err
+				return "", 0, 0, err
 			}
 		}
 	}
-	return deployment.Spec.Template.Spec.Containers[0].Name, deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort, nil
+
+	var httpsPort int32
+	var grpcPort int32
+
+	ports := deployment.Spec.Template.Spec.Containers[0].Ports
+
+	for _, port := range ports {
+		if port.Name == "grpc" {
+			grpcPort = port.ContainerPort
+		}
+		if port.Name == "https" {
+			httpsPort = port.ContainerPort
+		}
+	}
+	return deployment.Spec.Template.Spec.Containers[0].Name, httpsPort, grpcPort, nil
 }
 
-func generateService(fn *functionConfig, deploymentPort int32) (*yaml.RNode, error) {
+func generateService(fn *functionConfig, deploymentPort int32, grpcPort int32) (*yaml.RNode, error) {
 	// create a service object over here
 	service := kv1.Service{
 		TypeMeta: metav1.TypeMeta{
@@ -347,6 +366,7 @@ func generateService(fn *functionConfig, deploymentPort int32) (*yaml.RNode, err
 			Ports: []kv1.ServicePort{
 				{
 					Port:       80,
+					Name:       "https",
 					TargetPort: intstr.IntOrString(intstr.FromInt(int(deploymentPort))),
 				},
 			},
@@ -355,7 +375,13 @@ func generateService(fn *functionConfig, deploymentPort int32) (*yaml.RNode, err
 			},
 		},
 	}
-
+	if grpcPort != 0 {
+		service.Spec.Ports = append(service.Spec.Ports, kv1.ServicePort{
+			Port:       80,
+			Name:       "grpc",
+			TargetPort: intstr.IntOrString(intstr.FromInt(int(grpcPort))),
+		})
+	}
 	// append service to the file
 	serviceNode, err := toRNode(service)
 	if err != nil {

@@ -26,7 +26,10 @@ items:
               cpu: 10m
               memory: 20Mi
           ports:
-          - containerPort: 8000
+          - name: grpc
+            containerPort: 5678
+          - name: https
+            containerPort: 8000
           envFrom:
           - configMapRef:
               name: test-server
@@ -41,8 +44,8 @@ functionConfig:
     app: testapp
     hosts:
     - test-secure.com
+    grpc: true
     routes:
     - match: Path(`/vpn`)
     - match: Path(`/hello`)
-    - grpc: true
     
