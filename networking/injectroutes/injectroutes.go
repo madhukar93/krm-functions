@@ -171,7 +171,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 		service := traefik.Service{}
 		service.LoadBalancerSpec.Name = deploymentName
 		service.LoadBalancerSpec.Port = intstr.FromInt(int(grpcPort))
-		service.LoadBalancerSpec.PassHostHeader = &[]bool{true}[0]
+		service.LoadBalancerSpec.PassHostHeader = &[]bool{true}[0] //TODO: some hack to create a pointer to bool
 		service.LoadBalancerSpec.Scheme = "h2c"
 
 		newRoute := traefik.Route{
@@ -278,7 +278,7 @@ func toRNode(obj interface{}) (*yaml.RNode, error) {
 
 	default:
 		{
-			fmt.Println(v)
+			//fmt.Println(v)
 			return nil, errors.New("unknown type can't convert")
 		}
 	}

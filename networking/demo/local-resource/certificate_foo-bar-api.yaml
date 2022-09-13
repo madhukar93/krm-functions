@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Certificate
+metadata:
+  creationTimestamp: null
+  name: foo-bar-api
+spec:
+  dnsNames:
+  - foo.com
+  - bar.co
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt
+  secretName: foo-bar-api-cert
+status: {}

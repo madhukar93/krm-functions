@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: LummoNetworking
+metadata:
+  name: foobar-networking
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: ghcr.io/4molybdenum2/networking:latest
+data:
+  app: foo-bar-api
+  hosts:
+  - foo.com
+  - bar.co
+  grpc: true
+  routes:
+  - match: Path(`/foo`)
+  - match: Path(`/bar`)
