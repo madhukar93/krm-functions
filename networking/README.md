@@ -68,4 +68,4 @@ a deployment that doesn’t have an app label is invalid - to be eventually vali
 
 - [x] add vpn flag
 
-- [ ] support grpc
+- [x] support grpc
