@@ -93,8 +93,12 @@ resources on the server side which is very different from the implementation we 
 - <https://kubevela.io/>
 
 ### Learn
-
+- <https://www.youtube.com/watch?v=YlFUv4F5PYc>
+- <https://kubectl.docs.kubernetes.io/guides/extending_kustomize/>
 - <https://www.gitops.tech/>
 - <https://github.com/kubernetes/design-proposals-archive/blob/main/architecture/declarative-application-management.md>
 - <https://cloud.google.com/blog/products/containers-kubernetes/understanding-configuration-as-data-in-kubernetes>
 - <https://cloud.google.com/blog/topics/developers-practitioners/build-platform-krm-part-1-whats-platform>
+- <https://pkg.go.dev/sigs.k8s.io/kustomize/kyaml/fn/framework>
+- <https://github.com/kubernetes-sigs/kustomize/blob/master/cmd/config/docs/api-conventions/functions-spec.md>
+- <https://kpt.dev/book/02-concepts/03-functions>
