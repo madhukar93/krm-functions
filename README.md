@@ -54,15 +54,16 @@ container:
 3. Should build upon our current deployment tooling and code (work with argocd, argo rollouts etc) and seek to replace
    it for considerable gains only. The current implementation has the weakness that it is not sufficiently abstract but
    its strengths are that it is built on solid foundations. Let's not fix what's not broken.
-4. We will try to server the 90% usecase first, it can be 10% leaky. KISS - for development and usage. No over-abstraction.
-   This approach doesn't force you to stick to it, it's just kustomize after all.
+4. We will try to serve the 90% usecase first, it can be 10% leaky. KISS - for development and usage. No over-abstraction.
+   This approach doesn't force you to stick to it, it's just kustomize after all, and there are easy escape hatches and alternatives.
 
 ## Roadmap
 
-- [ ] networking resources
-- [ ] workloads
-- [ ] autoscaling
-- [ ] postgres
+- [x] networking resources
+- [ ] workloads - WIP
+- [ ] autoscaling - part of workloads?
+- [ ] monitoring - part of workloads
+- [ ] pgbouncer
 
 ## FAQ
 
@@ -76,6 +77,22 @@ There would have been benefits to an out of the box implementation if we had out
 but the standard and implementations are at a nascent stage. Kubevela, it's canonical implementation renders cue templates to generate
 resources on the server side which is very different from the implementation we are going for. Plus this doesn't look very appetizing
 <https://kubevela.io/docs/tutorials/k8s-object#deploy-with-cli>
+
+### Why not helm?
+
+templating is bad
+
+- templating is just programming in an inferior 'stringly typed' environment
+- coding, debugging, testing etc is harder
+- Writing significant logic is hard
+
+ why KRM functions are better -
+
+- can use any programming language and it's ecosystem
+- functions have single responsibility
+- functions are composable (they can be 'piped'), easier to do cross cutting concerns
+- can reuse code between k8s operators and client side functions
+- can be used for more than just config generation, can be used for transformation and validation
 
 ## links
 
