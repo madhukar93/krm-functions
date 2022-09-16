@@ -19,16 +19,18 @@ the outside world.
 
 ```yaml
 kind: LummoNetworking
-part-of: foobar
-app: foobar-api
-domains:
-- a.test.com
-- b.test.com
-grpc: true
-routes:
-- match: Path(`/hello`)
-  vpn: true
-- match: Path(`/world`)
+metadata:
+  name: test
+spec:
+  app: test-server
+  grpc: true
+  domains:
+  - a.test.com
+  - b.test.com
+  routes:
+  - match: Path(`/hello`) # these will always be https
+    vpn: true
+  - match: Path(`/world`)
 ```
 
 ## Workloads

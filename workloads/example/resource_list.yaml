@@ -1,0 +1,18 @@
+apiVersion: config.kubernetes.io/v1
+kind: ResourceList
+items:
+  - apiVersion: examples.config.kubernetes.io/v1beta1
+    kind: LummoDeployment
+    metadata:
+      name: test-app
+      annotations:
+        config.kubernetes.io/function: |
+          container:
+            image: gcr.io/beecash-prod/infra/krm-functions/workloads:latest
+    spec:
+      part-of: foobar
+      app: foobar-api
+      containers:
+        - name: foobar-api
+          image: foobar
+          command: ["python", "server.py"]

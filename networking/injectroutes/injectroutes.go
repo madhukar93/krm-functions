@@ -12,7 +12,7 @@ import (
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	traefik "github.com/traefik/traefik/v2/pkg/provider/kubernetes/crd/traefik/v1alpha1"
 	v1 "k8s.io/api/apps/v1"
-	kv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	kindNetworking       = "IngressRoute"
+	ingressRouteKind     = "IngressRoute"
 	apiVersionNetworking = "traefik.containo.us/v1alpha1"
 )
 
@@ -35,6 +35,7 @@ type InjectRoutes struct {
 }
 
 type RouteConfig struct {
+	// FIXME: use yaml.NewYAMLOrJSONDecoder
 	Match string `yaml:"match ,omitempty" ,json:"match, omitempty"`
 	Vpn   bool   `yaml:"vpn ,omitempty" ,json:"vpn ,omitempty"`
 }
@@ -92,6 +93,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	}
 
 	// delete all the existing services, ingress and certificates
+	// FIXM: replace only the ones that this function creates
 	out := []*yaml.RNode{}
 
 	for _, resource := range items {
@@ -108,7 +110,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	//if !fn.Grpc {
 	ingressRoute := traefik.IngressRoute{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       kindNetworking,
+			Kind:       ingressRouteKind,
 			APIVersion: apiVersionNetworking,
 		},
 
@@ -121,7 +123,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 
 	ingressRouteGrpc := traefik.IngressRoute{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       kindNetworking,
+			Kind:       ingressRouteKind,
 			APIVersion: apiVersionNetworking,
 		},
 
@@ -248,7 +250,7 @@ func toRNode(obj interface{}) (*yaml.RNode, error) {
 			return node, nil
 		}
 
-	case kv1.Service:
+	case corev1.Service:
 		{
 			j, err := json.Marshal(v)
 			if err != nil {
@@ -354,7 +356,7 @@ func getDeploymentData(items []*yaml.RNode) (string, int32, int32, error) {
 
 func generateService(fn *functionConfig, deploymentPort int32, grpcPort int32) (*yaml.RNode, error) {
 	// create a service object over here
-	service := kv1.Service{
+	service := corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
@@ -362,8 +364,8 @@ func generateService(fn *functionConfig, deploymentPort int32, grpcPort int32) (
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fn.App,
 		},
-		Spec: kv1.ServiceSpec{
-			Ports: []kv1.ServicePort{
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
 				{
 					Port:       80,
 					Name:       "https",

@@ -1,40 +1,37 @@
 apiVersion: config.kubernetes.io/v1
 kind: ResourceList
 items:
-- apiVersion: apps/v1
-  kind: Deployment
-  metadata:
-    name: test-server
-    annotations:
-      configmap.reloader.stakater.com/reload: test-server
-      secret.reloader.stakater.com/reload: test-server
-  spec:
-    replicas: 1
-    selector:
-      matchLabels:
-        app: test-server
-    template:
-      metadata:
-        labels:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: test-server
+      annotations:
+        configmap.reloader.stakater.com/reload: test-server
+        secret.reloader.stakater.com/reload: test-server
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
           app: test-server
-      spec:
-        containers:
-        - name: name
-          image: gcr.io/beecash-prod/infra/simple-go-service:master-dd823a5
-          resources:
-            requests:
-              cpu: 10m
-              memory: 20Mi
-          ports:
-          - name: grpc
-            containerPort: 5678
-          - name: https
-            containerPort: 8000
-          envFrom:
-          - configMapRef:
-              name: test-server
-          - secretRef:
-              name: test-server
+      template:
+        metadata:
+          labels:
+            app: test-server
+        spec:
+          containers:
+            - name: name
+              image: gcr.io/beecash-prod/infra/simple-go-service:master-dd823a5
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 20Mi
+              ports:
+                - containerPort: 8000
+              envFrom:
+                - configMapRef:
+                    name: test-server
+                - secretRef:
+                    name: test-server
 functionConfig:
   apiVersion: v1
   kind: LummoNetworking
@@ -43,9 +40,8 @@ functionConfig:
   data:
     app: testapp
     hosts:
-    - test-secure.com
-    grpc: true
+      - test-secure.com
     routes:
-    - match: Path(`/vpn`)
-    - match: Path(`/hello`)
-    
+      - match: Path(`/vpn`)
+      - match: Path(`/hello`)
+      - grpc: true
