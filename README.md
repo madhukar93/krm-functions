@@ -37,13 +37,46 @@ runs your containers for servers and jobs
 
 ```yaml
 ---
-kind: Deployment
-part-of: foobar
-app: foobar-api
-container:
-  command: ["python", "server.py"]
-  image: foobar
-  port: 80
+kind: LummoDeployment
+spec:
+  part-of: foobar
+  app: foobar-api
+  containers:
+    command: ["python", "server.py"]
+    image: foobar
+    ports: ...
+    configs:
+      - "tokko-api"
+    secrets:
+      - "tokko-api" # contains DB connection details also, which should match with pgbouncer
+```
+
+## pgbouncer
+```yaml
+apiVersion: LummoKRM
+kind: pgbouncer
+metadata:
+  name: tokko-api-pgbouncer
+spec:
+  app: foobar-api
+  part-of: foobar
+  spec:
+    connection:
+      host: hostname
+      port: 1234
+      database: foobar
+      credentialsSecret: tokko-api-postgres-creds # secret that contains creds key in username:pass format
+    config: # creates config map
+      POOL_SIZE: 100
+      # etc
+  
+```
+vault infra/postgres/tokko-api-postgres/creds
+
+```
+# kube/cloudsql/tokko-api/postgres
+- kustomization.yaml
+- db-secret.yaml # we can identify and map it by metadata
 ```
 
 ## Design priciples
