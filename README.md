@@ -71,7 +71,7 @@ spec:
     config: # creates config map
       POOL_SIZE: 100
       # etc
-  
+
 ```
 vault infra/postgres/tokko-api-postgres/creds
 
@@ -154,3 +154,14 @@ templating is bad
 - <https://pkg.go.dev/sigs.k8s.io/kustomize/kyaml/fn/framework>
 - <https://github.com/kubernetes-sigs/kustomize/blob/master/cmd/config/docs/api-conventions/functions-spec.md>
 - <https://kpt.dev/book/02-concepts/03-functions>
+
+### packages
+- yaml & KRM
+  - sigs.k8s.io/kustomize/kyaml/kio
+  - k8s.io/apimachinery/pkg/util/yaml
+  - sigs.k8s.io/yaml
+  - sigs.k8s.io/kustomize/kyaml/yaml
+- k8s API
+  - k8s.io/api/apps/v1
+  - k8s.io/api/core/v1
+  - k8s.io/apimachinery/pkg/apis/meta/v1
