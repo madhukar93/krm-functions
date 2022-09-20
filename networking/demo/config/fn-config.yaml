@@ -5,7 +5,7 @@ metadata:
   annotations:
     config.kubernetes.io/function: |
       container:
-        image: ghcr.io/4molybdenum2/networking:latest
+        image: networking:latest
 data:
   app: foo-bar-api
   hosts:

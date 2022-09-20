@@ -378,7 +378,7 @@ func generateService(fn *functionConfig, deploymentPort int32, grpcPort int32) (
 		},
 	}
 	if grpcPort != 0 {
-		service.Spec.Ports = append(service.Spec.Ports, kv1.ServicePort{
+		service.Spec.Ports = append(service.Spec.Ports, corev1.ServicePort{
 			Port:       80,
 			Name:       "grpc",
 			TargetPort: intstr.IntOrString(intstr.FromInt(int(grpcPort))),
