@@ -3,18 +3,16 @@ package main
 import (
 	"os"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework/command"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework/parser"
 )
 
 type functionConfig struct {
-	Metadata metadata `yaml:"metadata"`
-	Spec     spec     `yaml:"spec"`
-}
-
-type metadata struct {
-	Name string `yaml:"name"`
+	TypeMeta   metav1.TypeMeta
+	ObjectMeta metav1.ObjectMeta
+	Spec       spec `yaml:"spec"`
 }
 
 type spec struct {
@@ -50,7 +48,6 @@ func main() {
 	}
 
 	cmd := command.Build(fn, command.StandaloneDisabled, false)
-	command.AddGenerateDockerfile(cmd)
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}
@@ -62,7 +59,7 @@ var serviceTemplate = `
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Metadata.Name }}
+  name: {{ .Spec.App }}
 spec:
   selector:
     app: pgbouncer
@@ -76,7 +73,7 @@ spec:
 var deploymentTemplate = `apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Metadata.Name }}
+  name: {{ .Spec.App }}
   labels:
     app: pgbouncer
     component: pgbouncer
@@ -162,7 +159,7 @@ spec:
 var podMonitorTemplate = `apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
-  name: {{ .Metadata.Name }}
+  name: {{ .Spec.App }}
 spec:
   podMetricsEndpoints:
   - path: /pgbouncer-metrics

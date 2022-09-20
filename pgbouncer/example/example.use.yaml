@@ -1,13 +1,13 @@
 apiVersion: LummoKRM
 kind: pgbouncer
 metadata:
-  name: testpgbouncer
+  name: akpgbouncer
   annotations:
     config.kubernetes.io/function: |
       container:
         image: pgbouncer-krm-functions:v0.1.0
 spec:
-  app: foobar-api
+  app: foobarapi
   part-of: foobar
   connection:
     host: hostname
