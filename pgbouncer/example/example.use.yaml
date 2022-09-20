@@ -1,0 +1,16 @@
+apiVersion: LummoKRM
+kind: pgbouncer
+metadata:
+  name: testpgbouncer
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: pgbouncer-krm-functions:v0.1.0
+spec:
+  app: foobar-api
+  part-of: foobar
+  connection:
+    host: hostname
+    port: 1234
+    database: foobar
+    credentialsSecret: tokko-api-postgres-creds # secret that contains creds key in username:pass format
