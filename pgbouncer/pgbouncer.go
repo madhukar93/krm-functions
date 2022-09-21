@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,9 +36,53 @@ type config struct {
 }
 
 func GetpgbouncerContainers() []corev1.Container {
-	// TODO
-	containers := []corev1.Container{}
-	return containers
+	Containers := []corev1.Container{
+		{
+			Image: "gcr.io/beecash-prod/pgbouncer:1.14.working",
+			Name:  "pgbouncer",
+			LivenessProbe: &corev1.Probe{
+				InitialDelaySeconds: 60,
+				PeriodSeconds:       10,
+				ProbeHandler: corev1.ProbeHandler{
+					TCPSocket: &corev1.TCPSocketAction{
+						Port: intstr.IntOrString(intstr.FromInt(int(6432))),
+					},
+				},
+			},
+			ReadinessProbe: &corev1.Probe{
+				InitialDelaySeconds: 20,
+				PeriodSeconds:       10,
+				FailureThreshold:    6,
+				ProbeHandler: corev1.ProbeHandler{
+					TCPSocket: &corev1.TCPSocketAction{
+						Port: intstr.IntOrString(intstr.FromInt(int(6432))),
+					},
+				},
+			},
+			Lifecycle: &corev1.Lifecycle{
+				PreStop: &corev1.LifecycleHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"/bin/sh",
+							"-c",
+							"sleep 15 && psql $PGBOUNCER_DB_ADMIN_URL -c 'PAUSE $DB_NAME;'",
+						},
+					},
+				},
+			},
+		},
+		{
+			Image: "spreaker/prometheus-pgbouncer-exporter",
+			Name:  "prometheus-pgbouncer-exporter",
+			Ports: []corev1.ContainerPort{
+				{
+					Name:          "pgb-metrics",
+					ContainerPort: 9127,
+				},
+			},
+		},
+	}
+	return Containers
 }
 
 func makeService(conf functionConfig) corev1.Service {
@@ -76,6 +120,10 @@ func makeDeployment(conf functionConfig) appsv1.Deployment {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: conf.ObjectMeta.Name,
+			Labels: map[string]string{
+				"app":     conf.Spec.App,
+				"part-of": conf.Spec.PartOf,
+			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
@@ -91,9 +139,34 @@ func makeDeployment(conf functionConfig) appsv1.Deployment {
 				},
 			},
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app":     conf.Spec.App,
+						"part-of": conf.Spec.PartOf,
+					},
+				},
 				Spec: corev1.PodSpec{
 					Containers: GetpgbouncerContainers(),
+					Affinity: &corev1.Affinity{
+						PodAntiAffinity: &corev1.PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+								{
+									TopologyKey: "kubernetes.io/hostname",
+									LabelSelector: &metav1.LabelSelector{
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "app",
+												Operator: metav1.LabelSelectorOpIn,
+												Values: []string{
+													"pgbouncer",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
