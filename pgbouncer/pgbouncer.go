@@ -1,12 +1,14 @@
 package main
 
 import (
-	"os"
+	"fmt"
 
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	yaml "gopkg.in/yaml.v2"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/kustomize/kyaml/fn/framework"
-	"sigs.k8s.io/kustomize/kyaml/fn/framework/command"
-	"sigs.k8s.io/kustomize/kyaml/fn/framework/parser"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 type functionConfig struct {
@@ -33,139 +35,120 @@ type config struct {
 	// TODO
 }
 
-func main() {
-	func_config := new(functionConfig)
+func GetpgbouncerContainers() []corev1.Container {
+	// TODO
+	containers := []corev1.Container{}
+	return containers
+}
 
-	// create the template
-	fn := framework.TemplateProcessor{
-		// Templates input
-		TemplateData: func_config,
-		ResourceTemplates: []framework.ResourceTemplate{
-			{
-				Templates: parser.TemplateStrings(serviceTemplate + "---\n" + deploymentTemplate + "---\n" + podMonitorTemplate),
+func makeService(conf functionConfig) corev1.Service {
+	service := corev1.Service{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Service",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: conf.ObjectMeta.Name,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Port:       6432,
+					Name:       "pgbouncer",
+					TargetPort: intstr.IntOrString(intstr.FromInt(int(6432))),
+					Protocol:   "TCP",
+				},
+			},
+			Selector: map[string]string{
+				"app":     conf.Spec.App,
+				"part-of": conf.Spec.PartOf,
 			},
 		},
 	}
-
-	cmd := command.Build(fn, command.StandaloneDisabled, false)
-	if err := cmd.Execute(); err != nil {
-		os.Exit(1)
-	}
+	return service
 }
 
-// TODO: write functions to generate deployment, service and pod monitor spec
+func makeDeployment(conf functionConfig) appsv1.Deployment {
+	deployment := appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: conf.ObjectMeta.Name,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app":     conf.Spec.App,
+					"part-of": conf.Spec.PartOf,
+				},
+			},
+			Strategy: appsv1.DeploymentStrategy{
+				RollingUpdate: &appsv1.RollingUpdateDeployment{
+					MaxUnavailable: &intstr.IntOrString{IntVal: 0},
+					MaxSurge:       &intstr.IntOrString{IntVal: 2},
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: corev1.PodSpec{
+					Containers: GetpgbouncerContainers(),
+				},
+			},
+		},
+	}
+	return deployment
+}
 
-var serviceTemplate = `
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ .Spec.App }}
-spec:
-  selector:
-    app: pgbouncer
-  ports:
-  - name: pgbouncer
-    port: 6432
-    targetPort: 6432
-    protocol: TCP
-`
+func makePodMonitor(conf functionConfig) monitoringv1.PodMonitor {
+	podMonitor := monitoringv1.PodMonitor{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PodMonitor",
+			APIVersion: "monitoring.coreos.com/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: conf.ObjectMeta.Name,
+		},
+		Spec: monitoringv1.PodMonitorSpec{
+			PodMetricsEndpoints: []monitoringv1.PodMetricsEndpoint{
+				{
+					Path:        "/pgbouncer-metrics",
+					Port:        "pgb-metrics",
+					HonorLabels: true,
+				},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app":     conf.Spec.App,
+					"part-of": conf.Spec.PartOf,
+				},
+			},
+		},
+	}
+	return podMonitor
+}
 
-var deploymentTemplate = `apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ .Spec.App }}
-  labels:
-    app: pgbouncer
-    component: pgbouncer
-spec:
-  selector:
-    matchLabels:
-      app:  pgbouncer
-  replicas: 2
-  strategy:
-    rollingUpdate:
-      maxSurge: 2
-      maxUnavailable: 0
-  template:
-    metadata:
-      labels:
-        app: pgbouncer
-    spec:
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - pgbouncer
-            topologyKey: kubernetes.io/hostname
-      containers:
-      - image: gcr.io/beecash-prod/pgbouncer:1.14.working
-        name: pgbouncer
-        env:
-          - name: DATABASE_URL
-            value: "postgres://$(DB_USER):$(DB_PASSWORD)@$(DATABASE_HOST):5432/$(DB_NAME)"
-          - name: ADMIN_USERS
-            value: $(DB_USER)
-        livenessProbe:
-          tcpSocket:
-            port: 6432
-          initialDelaySeconds: 60
-          periodSeconds: 10
-        readinessProbe:
-          tcpSocket:
-            port: 6432
-          initialDelaySeconds: 20
-          failureThreshold: 6
-          periodSeconds: 10
-        lifecycle:
-          preStop:
-            exec:
-              # Remove pod from service but keep it active for some time
-              command: ['/bin/sh', '-c', 'sleep 15 && psql $PGBOUNCER_DB_ADMIN_URL -c "PAUSE $DB_NAME;"']
-        resources:
-          requests:
-            cpu: 50m
-            memory: 100Mi
-          limits:
-            cpu: 1
-            memory: 500Mi
-      - image: spreaker/prometheus-pgbouncer-exporter
-        name: prometheus-pgbouncer-exporter
-        env:
-          - name: PGBOUNCER_PASS
-            valueFrom:
-              secretKeyRef:
-                name: tokko-api
-                key: DB_PASSWORD
-          - name: PGBOUNCER_EXPORTER_HOST
-            value: 0.0.0.0
-          - name: PGBOUNCER_PORT
-            value: '6432'
-        ports:
-          - name: pgb-metrics
-            containerPort: 9127
-        resources:
-          requests:
-            cpu: 10m
-            memory: 50Mi
-          limits:
-            cpu: 100m
-            memory: 500Mi
-`
+func main() {
+	var func_config functionConfig
+	func_config.ObjectMeta.Name = "testsvc"
+	func_config.Spec.App = "testapp"
+	func_config.Spec.PartOf = "testapp-partof"
 
-var podMonitorTemplate = `apiVersion: monitoring.coreos.com/v1
-kind: PodMonitor
-metadata:
-  name: {{ .Spec.App }}
-spec:
-  podMetricsEndpoints:
-  - path: /pgbouncer-metrics
-    port: pgb-metrics
-    honorLabels: true
-  selector:
-    matchLabels:
-      app: pgbouncer
-`
+	// call service generate func
+	svc_obj := makeService(func_config)
+	svc, _ := yaml.Marshal(svc_obj)
+	fmt.Println(string(svc))
+	fmt.Println("---\n")
+
+	// call deployment generate func
+	deployment_obj := makeDeployment(func_config)
+	deployment, _ := yaml.Marshal(deployment_obj)
+	fmt.Println(string(deployment))
+
+	//call podmonitor generate func
+	podmonitor_obj := makePodMonitor(func_config)
+	podmonitor, _ := yaml.Marshal(podmonitor_obj)
+	fmt.Println(string(podmonitor))
+
+}
