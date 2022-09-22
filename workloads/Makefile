@@ -8,5 +8,3 @@ debug:
 
 build:
 	docker build . -t gcr.io/beecash-prod/infra/krm-functions/workloads:latest
-
-.PHONY: build

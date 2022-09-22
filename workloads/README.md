@@ -6,7 +6,7 @@ KRM functions for running jobs, crons and rollout objects.
 ---
 # fields that match as is will be passed as is
 # special function fields will
-kind: Deployment
+kind: LummoDeployment
 spec:
   part-of: foobar
   app: foobar-api
@@ -21,31 +21,32 @@ spec:
     command: ["python", "server.py"]
     # port: 80 nah, do the same stuff
   # all env vars are imported as is using envFrom
+    grpc:
+      port: 5000
+    http:
+      port: 8000
     configMaps:
       - foobar-api
     secrets:
     - foobar-api
     # same as k8s containers
-    env:
-      -
-      probes:
-        readiness:
-        liveness:
-    strategy:
-      ... # exactly the same as rollout?
+    strategy: {} # TODO Lift from Rollout kind?
+    scaling: {} # TODO: build KEDA resource
 ---
-kind: Cron
-part-of: foobar
-name: foobar
-schedule: * * * */10
-container:
-  command: ["python", "cron.py"]
-  image: test-server-job
+kind: LummoCron
+spec:
+  part-of: foobar
+  name: foobar
+  schedule: * * * */10
+  container:
+    command: ["python", "cron.py"]
+    image: test-server-job
 ---
-kind: Job
-part-of: foobar
-name: daily-foo-job
-container:
-  command: ["python", "job.py"]
-  image: test-server-job
+kind: LummoJob
+spec:
+  part-of: foobar
+  name: daily-foo-job
+  container:
+    command: ["python", "job.py"]
+    image: test-server-job
 ```
