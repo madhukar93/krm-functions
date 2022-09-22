@@ -13,6 +13,8 @@ spec:
     host: hostname
     port: 1234
     database: foobar
+    user: username
+    password: password
     credentialsSecret: tokko-api-postgres-creds # secret that contains creds key in username:pass format
   config:
     LISTEN_PORT: "6432"

@@ -29,8 +29,10 @@ type spec struct {
 
 type connection struct {
 	Host              string `yaml:"host"`
-	Port              int    `yaml:"port"`
+	Port              string `yaml:"port"`
 	Database          string `yaml:"database"`
+	Username          string `yaml:"username"`
+	Password          string `yaml:"password"`
 	CredentialsSecret string `yaml:"credentialsSecret"`
 }
 
@@ -46,14 +48,75 @@ func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
 						},
 					},
 				},
+				{
+					SecretRef: &corev1.SecretEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: conf.Spec.Connection.CredentialsSecret,
+						},
+					},
+				},
+			},
+			Env: []corev1.EnvVar{
+				{
+					Name: "DD_AGENT_HOST",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							FieldPath: "status.hostIP",
+						},
+					},
+				},
+				{
+					Name: "DD_VERSION",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							FieldPath: "metadata.annotations['app.tokko.io/version']",
+						},
+					},
+				},
+				{
+					Name: "DD_ENV",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							FieldPath: "metadata.annotations['app.tokko.io/env']",
+						},
+					},
+				},
+				{
+					Name: "SERVICE_NAME",
+					ValueFrom: &corev1.EnvVarSource{
+						FieldRef: &corev1.ObjectFieldSelector{
+							FieldPath: "metadata.labels['app']",
+						},
+					},
+				},
+				{
+					Name:  "ENABLE_APM_TRACING",
+					Value: "true",
+				},
+				{
+					Name:  "POSTGRESQL_USERNAME",
+					Value: conf.Spec.Connection.Username,
+				},
+				{
+					Name:  "POSTGRESQL_PASSWORD",
+					Value: conf.Spec.Connection.Password,
+				},
+				{
+					Name:  "POSTGRESQL_DATABASE",
+					Value: conf.Spec.Connection.Database,
+				},
+				{
+					Name:  "POSTGRESQL_PORT",
+					Value: conf.Spec.Connection.Port,
+				},
 			},
 			Resources: corev1.ResourceRequirements{
 				Limits: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("500"),
+					corev1.ResourceCPU:    resource.MustParse("1"),
 					corev1.ResourceMemory: resource.MustParse("500Mi"),
 				},
 				Requests: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("50"),
+					corev1.ResourceCPU:    resource.MustParse("50m"),
 					corev1.ResourceMemory: resource.MustParse("50Mi"),
 				},
 			},
@@ -92,6 +155,17 @@ func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
 		{
 			Image: "spreaker/prometheus-pgbouncer-exporter",
 			Name:  "prometheus-pgbouncer-exporter",
+			Env: []corev1.EnvVar{
+
+				{
+					Name:  "PGBOUNCER_USER",
+					Value: conf.Spec.Connection.Username,
+				},
+				{
+					Name:  "PGBOUNCER_PASS",
+					Value: conf.Spec.Connection.Password,
+				},
+			},
 			Ports: []corev1.ContainerPort{
 				{
 					Name:          "pgb-metrics",
@@ -100,11 +174,11 @@ func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
 			},
 			Resources: corev1.ResourceRequirements{
 				Limits: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("500"),
+					corev1.ResourceCPU:    resource.MustParse("500m"),
 					corev1.ResourceMemory: resource.MustParse("500Mi"),
 				},
 				Requests: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("10"),
+					corev1.ResourceCPU:    resource.MustParse("10m"),
 					corev1.ResourceMemory: resource.MustParse("50Mi"),
 				},
 			},
@@ -257,7 +331,9 @@ func makePodDisruptionBudget(conf functionConfig) policyv1.PodDisruptionBudget {
 }
 
 func main() {
+	// inputs
 	var func_config functionConfig
+
 	func_config.ObjectMeta.Name = "pgbouncer"
 	func_config.Spec.Product = "tokko"
 	func_config.Spec.PartOf = "tokko-coupon"
@@ -268,6 +344,13 @@ func main() {
 		"PGBOUNCER_MAX_CLIENT_CONN":   "5000",
 		"POSTGRESQL_HOST":             " 10.48.0.2",
 	}
+	func_config.Spec.Connection.Database = "testdb"
+	func_config.Spec.Connection.Username = "user"
+	func_config.Spec.Connection.Password = "pass"
+	func_config.Spec.Connection.CredentialsSecret = "test-secret"
+	func_config.Spec.Connection.Port = "6432"
+
+	// output file
 	var filename = "./output.yaml"
 	f, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
