@@ -220,34 +220,42 @@ func getAppContainer(d appsv1.Deployment) (*corev1.Container, error) {
 	return nil, fmt.Errorf("no app container found")
 }
 
-// TODO: Return a Result type? Does the framework have a result type?
-func makeDeployment(conf functionConfig) appsv1.Deployment {
-	d := appsv1.Deployment{
+func NewDeployment() *appsv1.Deployment {
+	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: conf.Spec.App,
-			//Labels: conf.Spec.Labels,
+			Name:      "",
+			Namespace: "",
 		},
 		Spec: appsv1.DeploymentSpec{
+			Replicas: nil,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{},
 			},
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{},
-				Spec:       corev1.PodSpec{},
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{},
+				},
 			},
 		},
 	}
+}
 
+// TODO: Return a Result type? Does the framework have a result type?
+func makeDeployment(conf functionConfig) appsv1.Deployment {
+	d := NewDeployment()
 	d.Labels = make(map[string]string)
 	d.Spec.Selector.MatchLabels = make(map[string]string)
 	d.Spec.Template.Labels = make(map[string]string)
-	conf.addDeploymentLabels(&d)
-	d.Spec.Template.Spec.Containers = append(conf.Spec.GetContainers(), d.Spec.Template.Spec.Containers...)
-	return d
+	conf.addDeploymentLabels(d)
+	conf.addContainers(d)
+	return *d
 }
 
 func makeService(d appsv1.Deployment) corev1.Service {
