@@ -153,10 +153,8 @@ func (w WorkloadsFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			}
 			continue
 		}
-
 		out = append(out, node)
 	}
-
 	return out, nil
 }
 
@@ -229,6 +227,7 @@ func NewDeployment() *appsv1.Deployment {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "",
 			Namespace: "",
+			Labels:    map[string]string{},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: nil,
@@ -250,16 +249,26 @@ func NewDeployment() *appsv1.Deployment {
 // TODO: Return a Result type? Does the framework have a result type?
 func makeDeployment(conf functionConfig) appsv1.Deployment {
 	d := NewDeployment()
-	d.Labels = make(map[string]string)
-	d.Spec.Selector.MatchLabels = make(map[string]string)
-	d.Spec.Template.Labels = make(map[string]string)
+	d.ObjectMeta.Name = conf.Spec.App
 	conf.addDeploymentLabels(d)
 	conf.addContainers(d)
 	return *d
 }
 
 func makeService(d appsv1.Deployment) corev1.Service {
-	s := corev1.Service{}
+	s := corev1.Service{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Service",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: d.ObjectMeta.Labels["app"],
+			Labels: map[string]string{
+				"part-of": d.ObjectMeta.Labels["part-of"],
+				"app":     d.ObjectMeta.Labels["app"],
+			},
+		},
+	}
 	s.Spec.Selector = d.Spec.Selector.MatchLabels
 	ac, _ := getAppContainer(d)
 	for _, p := range ac.Ports {

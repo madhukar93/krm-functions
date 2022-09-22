@@ -1,7 +1,8 @@
-apiVersion: examples.config.kubernetes.io/v1beta1
+apiVersion: lummoKRM/v1
 kind: LummoDeployment
 metadata:
   name: test-app
+  namespace: test
   annotations:
     config.kubernetes.io/function: |
       container:
