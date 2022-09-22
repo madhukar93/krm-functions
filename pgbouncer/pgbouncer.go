@@ -2,14 +2,16 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	k8syaml "sigs.k8s.io/yaml"
 )
 
 type functionConfig struct {
@@ -32,11 +34,30 @@ type connection struct {
 	CredentialsSecret string `yaml:"credentialsSecret"`
 }
 
-func GetpgbouncerContainers() []corev1.Container {
+func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
 	Containers := []corev1.Container{
 		{
-			Image: "gcr.io/beecash-prod/pgbouncer:1.14.working",
-			Name:  "pgbouncer",
+			Image: "gcr.io/beecash-prod/pgbouncer:bitnami-1.17.0-debian-11-r7",
+			EnvFrom: []corev1.EnvFromSource{
+				{
+					ConfigMapRef: &corev1.ConfigMapEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: conf.Spec.PartOf + "pgbouncer",
+						},
+					},
+				},
+			},
+			Resources: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("500"),
+					corev1.ResourceMemory: resource.MustParse("500Mi"),
+				},
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("50"),
+					corev1.ResourceMemory: resource.MustParse("50Mi"),
+				},
+			},
+			Name: "pgbouncer",
 			LivenessProbe: &corev1.Probe{
 				InitialDelaySeconds: 60,
 				PeriodSeconds:       10,
@@ -77,9 +98,23 @@ func GetpgbouncerContainers() []corev1.Container {
 					ContainerPort: 9127,
 				},
 			},
+			Resources: corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("500"),
+					corev1.ResourceMemory: resource.MustParse("500Mi"),
+				},
+				Requests: corev1.ResourceList{
+					corev1.ResourceCPU:    resource.MustParse("10"),
+					corev1.ResourceMemory: resource.MustParse("50Mi"),
+				},
+			},
 		},
 	}
 	return Containers
+}
+
+func (conf functionConfig) GetEnvironmentVariables() {
+
 }
 
 func (conf functionConfig) GetConfigMapData() map[string]string {
@@ -154,7 +189,7 @@ func makeDeployment(conf functionConfig) appsv1.Deployment {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: conf.GetObjectMeta(),
 				Spec: corev1.PodSpec{
-					Containers: GetpgbouncerContainers(),
+					Containers: conf.GetpgbouncerContainers(),
 					Affinity: &corev1.Affinity{
 						PodAntiAffinity: &corev1.PodAntiAffinity{
 							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
@@ -233,31 +268,51 @@ func main() {
 		"PGBOUNCER_MAX_CLIENT_CONN":   "5000",
 		"POSTGRESQL_HOST":             " 10.48.0.2",
 	}
+	var filename = "./output.yaml"
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
 
 	// call service generate func
 	svc_obj := makeService(func_config)
-	svc, _ := yaml.Marshal(svc_obj)
+	svc, _ := k8syaml.Marshal(svc_obj)
 	fmt.Println(string(svc))
-	fmt.Println("---\n")
-
+	if _, err = f.WriteString(string(svc) + "---"); err != nil {
+		panic(err)
+	}
 	// call deployment generate func
 	deployment_obj := makeDeployment(func_config)
-	deployment, _ := yaml.Marshal(deployment_obj)
+	deployment, _ := k8syaml.Marshal(deployment_obj)
 	fmt.Println(string(deployment))
+	if _, err = f.WriteString("\n" + string(deployment) + "---"); err != nil {
+		panic(err)
+	}
 
 	//call podmonitor generate func
 	podmonitor_obj := makePodMonitor(func_config)
-	podmonitor, _ := yaml.Marshal(podmonitor_obj)
+	podmonitor, _ := k8syaml.Marshal(podmonitor_obj)
 	fmt.Println(string(podmonitor))
+	if _, err = f.WriteString("\n" + string(podmonitor) + "---"); err != nil {
+		panic(err)
+	}
 
 	// call config map generate func
 	cm_obj := makeConfigMap(func_config)
-	cm, _ := yaml.Marshal(cm_obj)
+	cm, _ := k8syaml.Marshal(cm_obj)
 	fmt.Println(string(cm))
+	if _, err = f.WriteString("\n" + string(cm) + "---"); err != nil {
+		panic(err)
+	}
 
 	// call pdb map generate func
 	pdb_obj := makePodDisruptionBudget(func_config)
-	pdb, _ := yaml.Marshal(pdb_obj)
+	//pdb, _ := yaml.Marshal(pdb_obj)
+	pdb, _ := k8syaml.Marshal(pdb_obj)
 	fmt.Println(string(pdb))
+	if _, err = f.WriteString("\n" + string(pdb)); err != nil {
+		panic(err)
+	}
 
 }
