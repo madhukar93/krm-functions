@@ -91,15 +91,39 @@ func (conf functionConfig) GetConfigMapData() map[string]string {
 	return configMap
 }
 
+func GetTypeMeta(kind string, apiversion string) metav1.TypeMeta {
+	typeMeta := metav1.TypeMeta{
+		Kind:       kind,
+		APIVersion: apiversion,
+	}
+	return typeMeta
+}
+
+func (conf functionConfig) GetObjectMeta() metav1.ObjectMeta {
+	objectMeta := metav1.ObjectMeta{
+		Name: conf.ObjectMeta.Name,
+		Labels: map[string]string{
+			"app":     conf.Spec.App,
+			"part-of": conf.Spec.PartOf,
+		},
+	}
+	return objectMeta
+}
+
+func (conf functionConfig) GetMetaLabelSelector() *metav1.LabelSelector {
+	metaLabelSelector := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app":     conf.Spec.App,
+			"part-of": conf.Spec.PartOf,
+		},
+	}
+	return metaLabelSelector
+}
+
 func makeService(conf functionConfig) corev1.Service {
 	service := corev1.Service{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Service",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: conf.ObjectMeta.Name,
-		},
+		TypeMeta:   GetTypeMeta("Service", "v1"),
+		ObjectMeta: conf.GetObjectMeta(),
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
 				{
@@ -120,24 +144,10 @@ func makeService(conf functionConfig) corev1.Service {
 
 func makeDeployment(conf functionConfig) appsv1.Deployment {
 	deployment := appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: conf.ObjectMeta.Name,
-			Labels: map[string]string{
-				"app":     conf.Spec.App,
-				"part-of": conf.Spec.PartOf,
-			},
-		},
+		TypeMeta:   GetTypeMeta("Deployment", "apps/v1"),
+		ObjectMeta: conf.GetObjectMeta(),
 		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app":     conf.Spec.App,
-					"part-of": conf.Spec.PartOf,
-				},
-			},
+			Selector: conf.GetMetaLabelSelector(),
 			Strategy: appsv1.DeploymentStrategy{
 				RollingUpdate: &appsv1.RollingUpdateDeployment{
 					MaxUnavailable: &intstr.IntOrString{IntVal: 0},
@@ -145,12 +155,7 @@ func makeDeployment(conf functionConfig) appsv1.Deployment {
 				},
 			},
 			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app":     conf.Spec.App,
-						"part-of": conf.Spec.PartOf,
-					},
-				},
+				ObjectMeta: conf.GetObjectMeta(),
 				Spec: corev1.PodSpec{
 					Containers: GetpgbouncerContainers(),
 					Affinity: &corev1.Affinity{
@@ -182,13 +187,8 @@ func makeDeployment(conf functionConfig) appsv1.Deployment {
 
 func makePodMonitor(conf functionConfig) monitoringv1.PodMonitor {
 	podMonitor := monitoringv1.PodMonitor{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PodMonitor",
-			APIVersion: "monitoring.coreos.com/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: conf.ObjectMeta.Name,
-		},
+		TypeMeta:   GetTypeMeta("PodMonitor", "monitoring.coreos.com/v1"),
+		ObjectMeta: conf.GetObjectMeta(),
 		Spec: monitoringv1.PodMonitorSpec{
 			PodMetricsEndpoints: []monitoringv1.PodMetricsEndpoint{
 				{
@@ -197,12 +197,7 @@ func makePodMonitor(conf functionConfig) monitoringv1.PodMonitor {
 					HonorLabels: true,
 				},
 			},
-			Selector: metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app":     conf.Spec.App,
-					"part-of": conf.Spec.PartOf,
-				},
-			},
+			Selector: *conf.GetMetaLabelSelector(),
 		},
 	}
 	return podMonitor
@@ -210,43 +205,20 @@ func makePodMonitor(conf functionConfig) monitoringv1.PodMonitor {
 
 func makeConfigMap(conf functionConfig) corev1.ConfigMap {
 	configMap := corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: conf.ObjectMeta.Name,
-			Labels: map[string]string{
-				"app":     conf.Spec.App,
-				"part-of": conf.Spec.PartOf,
-			},
-		},
-		Data: conf.GetConfigMapData(),
+		TypeMeta:   GetTypeMeta("ConfigMap", "v1"),
+		ObjectMeta: conf.GetObjectMeta(),
+		Data:       conf.GetConfigMapData(),
 	}
 	return configMap
 }
 
 func makePodDisruptionBudget(conf functionConfig) policyv1.PodDisruptionBudget {
 	podDisruptionBudget := policyv1.PodDisruptionBudget{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PodDisruptionBudget",
-			APIVersion: "policy/v1beta1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: conf.ObjectMeta.Name,
-			Labels: map[string]string{
-				"app":     conf.Spec.App,
-				"part-of": conf.Spec.PartOf,
-			},
-		},
+		TypeMeta:   GetTypeMeta("PodDisruptionBudget", "policy/v1beta1"),
+		ObjectMeta: conf.GetObjectMeta(),
 		Spec: policyv1.PodDisruptionBudgetSpec{
 			MinAvailable: &intstr.IntOrString{IntVal: 1},
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app":     conf.Spec.App,
-					"part-of": conf.Spec.PartOf,
-				},
-			},
+			Selector:     conf.GetMetaLabelSelector(),
 		},
 	}
 	return podDisruptionBudget
