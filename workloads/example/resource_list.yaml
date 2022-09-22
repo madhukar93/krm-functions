@@ -16,3 +16,12 @@ items:
         - name: foobar-api
           image: foobar
           command: ["python", "server.py"]
+          grpc:
+            port: 3000
+          http:
+            port: 2000
+          secrets:
+            - foobar-api-database-secrets
+            - foobar-api-payment-api-creds
+          configs:
+            - foobar-api-config

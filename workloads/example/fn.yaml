@@ -11,6 +11,6 @@ spec:
   part-of: foobar
   app: foobar-api
   containers:
-    name: foobar-api
-    image: foobar
-    command: ["python", "server.py"]
+    - name: foobar-api
+      image: foobar
+      command: ["python", "server.py"]
