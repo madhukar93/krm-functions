@@ -7,6 +7,7 @@ import (
 	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -18,10 +19,10 @@ type functionConfig struct {
 }
 
 type spec struct {
-	PartOf     string     `yaml:"part-of"`
-	App        string     `yaml:"app"`
-	Connection connection `yaml:"connection,omitempty"`
-	Config     config     `yaml:"config,omitempty"`
+	PartOf     string            `yaml:"part-of"`
+	App        string            `yaml:"app"`
+	Connection connection        `yaml:"connection,omitempty"`
+	Config     map[string]string `yaml:"config,omitempty"`
 }
 
 type connection struct {
@@ -29,10 +30,6 @@ type connection struct {
 	Port              int    `yaml:"port"`
 	Database          string `yaml:"database"`
 	CredentialsSecret string `yaml:"credentialsSecret"`
-}
-
-type config struct {
-	// TODO
 }
 
 func GetpgbouncerContainers() []corev1.Container {
@@ -83,6 +80,15 @@ func GetpgbouncerContainers() []corev1.Container {
 		},
 	}
 	return Containers
+}
+
+func (conf functionConfig) GetConfigMapData() map[string]string {
+	configMap := map[string]string{}
+
+	for key, val := range conf.Spec.Config {
+		configMap[key] = val
+	}
+	return configMap
 }
 
 func makeService(conf functionConfig) corev1.Service {
@@ -202,11 +208,62 @@ func makePodMonitor(conf functionConfig) monitoringv1.PodMonitor {
 	return podMonitor
 }
 
+func makeConfigMap(conf functionConfig) corev1.ConfigMap {
+	configMap := corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: conf.ObjectMeta.Name,
+			Labels: map[string]string{
+				"app":     conf.Spec.App,
+				"part-of": conf.Spec.PartOf,
+			},
+		},
+		Data: conf.GetConfigMapData(),
+	}
+	return configMap
+}
+
+func makePodDisruptionBudget(conf functionConfig) policyv1.PodDisruptionBudget {
+	podDisruptionBudget := policyv1.PodDisruptionBudget{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PodDisruptionBudget",
+			APIVersion: "policy/v1beta1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: conf.ObjectMeta.Name,
+			Labels: map[string]string{
+				"app":     conf.Spec.App,
+				"part-of": conf.Spec.PartOf,
+			},
+		},
+		Spec: policyv1.PodDisruptionBudgetSpec{
+			MinAvailable: &intstr.IntOrString{IntVal: 1},
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app":     conf.Spec.App,
+					"part-of": conf.Spec.PartOf,
+				},
+			},
+		},
+	}
+	return podDisruptionBudget
+}
+
 func main() {
 	var func_config functionConfig
-	func_config.ObjectMeta.Name = "testsvc"
-	func_config.Spec.App = "testapp"
-	func_config.Spec.PartOf = "testapp-partof"
+	func_config.ObjectMeta.Name = "pgbouncer"
+	func_config.Spec.App = "tokko"
+	func_config.Spec.PartOf = "tokko-coupon"
+	func_config.Spec.Config = map[string]string{
+		"LISTEN_PORT":                 "6432",
+		"MAX_CLIENT_CONN":             "1000",
+		"PGBOUNCER_DEFAULT_POOL_SIZE": "200",
+		"PGBOUNCER_MAX_CLIENT_CONN":   "5000",
+		"POSTGRESQL_HOST":             " 10.48.0.2",
+	}
 
 	// call service generate func
 	svc_obj := makeService(func_config)
@@ -223,5 +280,15 @@ func main() {
 	podmonitor_obj := makePodMonitor(func_config)
 	podmonitor, _ := yaml.Marshal(podmonitor_obj)
 	fmt.Println(string(podmonitor))
+
+	// call config map generate func
+	cm_obj := makeConfigMap(func_config)
+	cm, _ := yaml.Marshal(cm_obj)
+	fmt.Println(string(cm))
+
+	// call pdb map generate func
+	pdb_obj := makePodDisruptionBudget(func_config)
+	pdb, _ := yaml.Marshal(pdb_obj)
+	fmt.Println(string(pdb))
 
 }

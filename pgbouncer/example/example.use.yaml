@@ -14,3 +14,11 @@ spec:
     port: 1234
     database: foobar
     credentialsSecret: tokko-api-postgres-creds # secret that contains creds key in username:pass format
+  config:
+    LISTEN_PORT: "6432"
+    MAX_CLIENT_CONN: "1000"
+    PGBOUNCER_DEFAULT_POOL_SIZE: "200"
+    PGBOUNCER_MAX_CLIENT_CONN: "5000"
+    PGBOUNCER_POOL_MODE: transaction
+    PGBOUNCER_RESERVE_POOL_SIZE: "100"
+    POSTGRESQL_HOST: 10.48.0.2
