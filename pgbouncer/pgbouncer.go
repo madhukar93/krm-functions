@@ -20,7 +20,7 @@ type functionConfig struct {
 
 type spec struct {
 	PartOf     string            `yaml:"part-of"`
-	App        string            `yaml:"app"`
+	Product    string            `yaml:"product"`
 	Connection connection        `yaml:"connection,omitempty"`
 	Config     map[string]string `yaml:"config,omitempty"`
 }
@@ -101,10 +101,11 @@ func GetTypeMeta(kind string, apiversion string) metav1.TypeMeta {
 
 func (conf functionConfig) GetObjectMeta() metav1.ObjectMeta {
 	objectMeta := metav1.ObjectMeta{
-		Name: conf.ObjectMeta.Name,
+		Name: conf.Spec.PartOf + "-" + "pgbouncer",
 		Labels: map[string]string{
-			"app":     conf.Spec.App,
+			"product": conf.Spec.Product,
 			"part-of": conf.Spec.PartOf,
+			"app":     conf.Spec.PartOf + "-" + "pgbouncer",
 		},
 	}
 	return objectMeta
@@ -113,8 +114,7 @@ func (conf functionConfig) GetObjectMeta() metav1.ObjectMeta {
 func (conf functionConfig) GetMetaLabelSelector() *metav1.LabelSelector {
 	metaLabelSelector := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			"app":     conf.Spec.App,
-			"part-of": conf.Spec.PartOf,
+			"app": conf.Spec.PartOf + "-" + "pgbouncer",
 		},
 	}
 	return metaLabelSelector
@@ -133,10 +133,7 @@ func makeService(conf functionConfig) corev1.Service {
 					Protocol:   "TCP",
 				},
 			},
-			Selector: map[string]string{
-				"app":     conf.Spec.App,
-				"part-of": conf.Spec.PartOf,
-			},
+			Selector: conf.GetMetaLabelSelector().MatchLabels,
 		},
 	}
 	return service
@@ -169,7 +166,7 @@ func makeDeployment(conf functionConfig) appsv1.Deployment {
 												Key:      "app",
 												Operator: metav1.LabelSelectorOpIn,
 												Values: []string{
-													"pgbouncer",
+													conf.Spec.PartOf + "-" + "pgbouncer",
 												},
 											},
 										},
@@ -227,7 +224,7 @@ func makePodDisruptionBudget(conf functionConfig) policyv1.PodDisruptionBudget {
 func main() {
 	var func_config functionConfig
 	func_config.ObjectMeta.Name = "pgbouncer"
-	func_config.Spec.App = "tokko"
+	func_config.Spec.Product = "tokko"
 	func_config.Spec.PartOf = "tokko-coupon"
 	func_config.Spec.Config = map[string]string{
 		"LISTEN_PORT":                 "6432",
