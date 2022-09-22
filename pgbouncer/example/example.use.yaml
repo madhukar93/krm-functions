@@ -7,8 +7,8 @@ metadata:
       container:
         image: pgbouncer-krm-functions:v0.1.0
 spec:
-  app: foobarapi
-  part-of: foobar
+  part-of: tokko-coupon
+  product: tokko
   connection:
     host: hostname
     port: 1234
