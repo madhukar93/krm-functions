@@ -8,6 +8,14 @@ import (
 	// "k8s.io/apimachinery/pkg/util/yaml"
 )
 
+/*
+TODO
+- preserve comments
+- create generate/transform semantics in the framework
+- try to leverage more of kyaml/fn package
+- have validations
+*/
+
 func main() {
 	rw := &kio.ByteReadWriter{
 		Reader:                os.Stdin,
