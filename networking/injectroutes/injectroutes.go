@@ -115,7 +115,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fn.App,
+			Name: fmt.Sprintf("%s-http", fn.App),
 		},
 
 		Spec: traefik.IngressRouteSpec{},
@@ -128,7 +128,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fn.App,
+			Name: fmt.Sprintf("%s-grpc", fn.App),
 		},
 
 		Spec: traefik.IngressRouteSpec{},
