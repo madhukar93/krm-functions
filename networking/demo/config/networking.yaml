@@ -9,9 +9,9 @@ metadata:
 data:
   app: foo-bar-api
   hosts:
-  - foo.com
-  - bar.co
-  grpc: true
+    - foo.com
+    - bar.co
+  # grpc: true
   routes:
-  - match: Path(`/foo`)
-  - match: Path(`/bar`)
+    - match: Path(`/foo`)
+    - match: Path(`/bar`)

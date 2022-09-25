@@ -1,0 +1,25 @@
+apiVersion: lummoKRM/v1
+kind: LummoDeployment
+metadata:
+  name: test-app
+  namespace: test
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: gcr.io/beecash-prod/infra/krm-functions/workloads:latest
+spec:
+  part-of: foobar
+  app: foobar-api
+  containers:
+    - name: foobar-api
+      image: foobar
+      command: ["python", "server.py"]
+      grpc:
+        port: 3000
+      http:
+        port: 2000
+      secrets:
+        - foobar-api-database-secrets
+        - foobar-api-payment-api-creds
+      configs:
+        - foobar-api-config
