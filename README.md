@@ -51,8 +51,25 @@ spec:
       - "tokko-api"
     secrets:
       - "tokko-api" # contains DB connection details also, which should match with pgbouncer
+    resources: # make this required
+      ----
+    scaling: # always use keda
+      cpu:
+        target:
+      memory:
+        target: 80% # (of requests)
+      pubsubTopic:
+        name:
+        size:
+      # no prom stuff for now
+      ----
+    monitoring: # it will just add DD envs vars
+      datadog: true
+      prometheus: # not needed for now
+        endpoint: '/metrics'
+        port: 1234 # when sidecar
+    strategy: {} # as is, produce rollout
 ```
-
 ## pgbouncer
 ```yaml
 apiVersion: LummoKRM
@@ -71,7 +88,6 @@ spec:
     config: # creates config map
       POOL_SIZE: 100
       # etc
-
 ```
 vault infra/postgres/tokko-api-postgres/creds
 
@@ -96,9 +112,11 @@ vault infra/postgres/tokko-api-postgres/creds
 
 - [x] networking resources
 - [ ] workloads - WIP
-- [ ] autoscaling - part of workloads?
-- [ ] monitoring - part of workloads
-- [ ] pgbouncer
+- [ ] autoscaling - part of workloads? yes
+- [ ] monitoring - part of workloads? - yes
+- [ ] canary - part of workloads
+- [ ] pgbouncer - WIP
+
 
 ## FAQ
 
