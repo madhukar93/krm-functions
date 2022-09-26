@@ -25,7 +25,17 @@ type spec struct {
 	PartOf     string      `json:"part-of"`
 	App        string      `json:"app"`
 	Containers []container `json:"containers,omitempty"`
-	Schedule   string      `json:"schedule,omitempty"`
+}
+
+type jobFunctionConfig struct {
+	typeMeta          metav1.TypeMeta
+	metav1.ObjectMeta `json:"metadata"`
+	Spec              jobSpec `json:"spec"`
+}
+
+type jobSpec struct {
+	spec
+	Schedule string `json:"schedule,omitempty"`
 }
 
 func (s spec) GetContainers() []corev1.Container {
@@ -155,7 +165,7 @@ func (w WorkloadsFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			}
 			continue
 		} else if node.GetKind() == "LummoCron" {
-			if fnConfig, err := parseFnConfig(node); err != nil {
+			if fnConfig, err := parseJobFnConfig(node); err != nil {
 				return nil, err
 			} else {
 				cronjob := makeCronJob(*fnConfig)
@@ -167,7 +177,7 @@ func (w WorkloadsFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			}
 			continue
 		} else if node.GetKind() == "LummoJob" {
-			if fnConfig, err := parseFnConfig(node); err != nil {
+			if fnConfig, err := parseJobFnConfig(node); err != nil {
 				return nil, err
 			} else {
 				job := makeJob(*fnConfig)
@@ -206,7 +216,20 @@ func parseFnConfig(node *kyaml.RNode) (*functionConfig, error) {
 		return nil, err
 	}
 	if err := json.Unmarshal(jsonBytes, &config); err != nil {
-		fmt.Println("err in parseconfig")
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+	return &config, nil
+}
+
+// parseFnConfig parses the JobfunctionConfig
+func parseJobFnConfig(node *kyaml.RNode) (*jobFunctionConfig, error) {
+	var config jobFunctionConfig
+	jsonBytes, err := node.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(jsonBytes, &config); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
@@ -311,7 +334,7 @@ func makeService(d appsv1.Deployment) corev1.Service {
 	return s
 }
 
-func GetJobSpec(jobConf functionConfig) batchv1.JobSpec {
+func GetJobSpec(jobConf jobFunctionConfig) batchv1.JobSpec {
 	jobSpec := batchv1.JobSpec{
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
@@ -329,7 +352,7 @@ func GetJobSpec(jobConf functionConfig) batchv1.JobSpec {
 	return jobSpec
 }
 
-func GetJobTemplate(jobConf functionConfig) batchv1.JobTemplateSpec {
+func GetJobTemplate(jobConf jobFunctionConfig) batchv1.JobTemplateSpec {
 	jobTemplateSpec := batchv1.JobTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: jobConf.Spec.App,
@@ -343,7 +366,7 @@ func GetJobTemplate(jobConf functionConfig) batchv1.JobTemplateSpec {
 	return jobTemplateSpec
 }
 
-func makeCronJob(jobConfig functionConfig) batchv1.CronJob {
+func makeCronJob(jobConfig jobFunctionConfig) batchv1.CronJob {
 	cj := batchv1.CronJob{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "CronJob",
@@ -364,7 +387,7 @@ func makeCronJob(jobConfig functionConfig) batchv1.CronJob {
 	return cj
 }
 
-func makeJob(jobConfig functionConfig) batchv1.Job {
+func makeJob(jobConfig jobFunctionConfig) batchv1.Job {
 	job := batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Job",
