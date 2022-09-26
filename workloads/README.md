@@ -41,6 +41,10 @@ spec:
   container:
     command: ["python", "cron.py"]
     image: test-server-job
+    configMaps:
+    - foobar-api
+    secrets:
+    - foobar-api
 ---
 kind: LummoJob
 spec:
@@ -49,4 +53,8 @@ spec:
   container:
     command: ["python", "job.py"]
     image: test-server-job
+    configMaps:
+    - foobar-api
+    secrets:
+    - foobar-api
 ```
