@@ -25,6 +25,28 @@ type spec struct {
 	PartOf     string      `json:"part-of"`
 	App        string      `json:"app"`
 	Containers []container `json:"containers,omitempty"`
+	Scaling    scalingSpec `json:"scaling,omitempty"`
+}
+
+type cpu struct {
+	Target string `json:"target,omitempty"`
+}
+
+type memory struct {
+	Target string `json:"target,omitempty"`
+}
+
+type pubsubTopic struct {
+	Name string `json:"name,omitempty"`
+	Size string `json:"size,omitempty"`
+}
+
+type scalingSpec struct {
+	MinReplica  int32       `json:"minreplica"`
+	MaxReplica  int32       `json:"maxreplica"`
+	Cpu         cpu         `json:"cpu,omitempty"`
+	Memory      memory      `json:"memory,omitempty"`
+	PubsubTopic pubsubTopic `json:"pubsubTopic,omitempty"`
 }
 
 type jobFunctionConfig struct {
@@ -158,6 +180,12 @@ func (w WorkloadsFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 					out = append(out, d)
 				}
 				if s, err := makeRNode(service); err != nil {
+					return nil, err
+				} else {
+					out = append(out, s)
+				}
+				scaling := fnConfig.makeScaledObject(deployment)
+				if s, err := makeRNode(scaling); err != nil {
 					return nil, err
 				} else {
 					out = append(out, s)
