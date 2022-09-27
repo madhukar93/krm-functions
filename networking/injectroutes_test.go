@@ -1,4 +1,4 @@
-package injectroutes
+package main
 
 import (
 	"io/ioutil"
