@@ -10,6 +10,9 @@ e2e: check-function-var build
 debug: check-function-var
 	dlv debug ${function} -r <(cat ${function}/example/resource_list.yaml)
 
+debug-linux: check-function-var
+	dlv debug ./${function} --check-go-version=false -r <(cat ${function}/example/resource_list.yaml)
+
 build: check-function-var
 	docker build . --build-arg=FUNCTION_DIR=${function} -t gcr.io/beecash-prod/infra/krm-functions/${function}:latest
 

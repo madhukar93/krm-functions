@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/bukukasio/krm-functions/pkg/fnutils"
 
@@ -89,6 +90,24 @@ func (s secret) envFromSecret() corev1.EnvFromSource {
 	}
 }
 
+type monitoring struct {
+	Datadog bool `json:"datadog"`
+}
+
+func (m monitoring) setEnvironments(c *corev1.Container) {
+	dd_trace := corev1.EnvVar{Name: "ENABLE_APM_TRACING", Value: "true"}
+	dd_host := corev1.EnvVar{Name: "DD_AGENT_HOST", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "status.hostIP"}}}
+	dd_version := corev1.EnvVar{Name: "DD_VERSION", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.annotations['app.tokko.io/version']"}}}
+	dd_env := corev1.EnvVar{Name: "DD_ENV", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.annotations['app.tokko.io/env']"}}}
+	dd_service := corev1.EnvVar{Name: "SERVICE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.labels['app']"}}}
+
+	c.Env = append(c.Env, dd_trace)
+	c.Env = append(c.Env, dd_host)
+	c.Env = append(c.Env, dd_version)
+	c.Env = append(c.Env, dd_env)
+	c.Env = append(c.Env, dd_service)
+}
+
 type container struct {
 	corev1.Container `json:",inline"`
 	// this is docker compose-ish
@@ -98,10 +117,11 @@ type container struct {
 	// and the fields are applied on top
 	// if they are populated, the container is used as a base
 	// and the fields are applied on top
-	Configs []config `json:"configs"`
-	Secrets []secret `json:"secrets"`
-	Grpc    grpc     `json:"grpc,omitempty"`
-	Http    http     `json:"http,omitempty"`
+	Configs    []config   `json:"configs"`
+	Secrets    []secret   `json:"secrets"`
+	Grpc       grpc       `json:"grpc,omitempty"`
+	Http       http       `json:"http,omitempty"`
+	Monitoring monitoring `json:"monitoring,omitempty"`
 
 	// Complicated because of PVC stuff and not worth doing
 	//Volumes []string `json:"volumes"`
@@ -121,6 +141,9 @@ func (c *container) GetContainer() corev1.Container {
 	}
 	if c.Http.Port != 0 {
 		c.Http.setHttpPort(&c.Container)
+	}
+	if c.Monitoring.Datadog == true {
+		c.Monitoring.setEnvironments(&c.Container)
 	}
 	return c.Container
 }
@@ -291,7 +314,20 @@ func makeDeployment(conf functionConfig) appsv1.Deployment {
 	d.ObjectMeta.Name = conf.Spec.App
 	conf.addDeploymentLabels(d)
 	conf.addContainers(d)
+	conf.addDeploymentAnnotations(d)
 	return *d
+}
+
+func (c *functionConfig) addDeploymentAnnotations(d *appsv1.Deployment) error {
+	image := strings.Split(d.Spec.Template.Spec.Containers[0].Image, ":")
+	image_tag := image[len(image)-1]
+	labels := map[string]string{
+		"app.tokko.io/version": image_tag,
+	}
+
+	d.ObjectMeta.SetAnnotations(labels)
+	d.Spec.Template.ObjectMeta.SetAnnotations(labels)
+	return nil
 }
 
 func makeService(d appsv1.Deployment) corev1.Service {

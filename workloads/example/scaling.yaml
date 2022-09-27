@@ -22,6 +22,8 @@ spec:
         - foobar-api-payment-api-creds
       configs:
         - foobar-api-config
+      monitoring:
+        datadog: true
   scaling: 
     minreplica: 1
     maxreplica: 10

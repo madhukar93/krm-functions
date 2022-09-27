@@ -25,3 +25,5 @@ items:
             - foobar-api-payment-api-creds
           configs:
             - foobar-api-config
+          monitoring:
+            datadog: true
