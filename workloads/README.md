@@ -25,7 +25,7 @@ spec:
       port: 5000
     http:
       port: 8000
-    configMaps:
+    configs:
       - foobar-api
     secrets:
     - foobar-api
@@ -41,6 +41,10 @@ spec:
   container:
     command: ["python", "cron.py"]
     image: test-server-job
+    configs:
+    - foobar-api
+    secrets:
+    - foobar-api
 ---
 kind: LummoJob
 spec:
@@ -49,4 +53,8 @@ spec:
   container:
     command: ["python", "job.py"]
     image: test-server-job
+    configs:
+    - foobar-api
+    secrets:
+    - foobar-api
 ```
