@@ -1,4 +1,4 @@
-package injectroutes
+package main
 
 import (
 	"encoding/json"
@@ -49,7 +49,7 @@ type functionConfig struct {
 
 // change route to our own object
 // create inject routes file
-func New(fnConfig *yaml.RNode) (*InjectRoutes, error) {
+func fnConfigFromRNode(fnConfig *yaml.RNode) (*InjectRoutes, error) {
 	if fnConfig == nil {
 		return nil, errors.New("no functionConfig specified")
 	}
