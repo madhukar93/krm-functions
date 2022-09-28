@@ -8,7 +8,6 @@ import (
 	"github.com/bukukasio/krm-functions/pkg/fnutils"
 
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -27,38 +26,6 @@ type spec struct {
 	App        string      `json:"app"`
 	Containers []container `json:"containers,omitempty"`
 	Scaling    scalingSpec `json:"scaling,omitempty"`
-}
-
-type cpu struct {
-	Target string `json:"target,omitempty"`
-}
-
-type memory struct {
-	Target string `json:"target,omitempty"`
-}
-
-type pubsubTopic struct {
-	Name string `json:"name,omitempty"`
-	Size string `json:"size,omitempty"`
-}
-
-type scalingSpec struct {
-	MinReplica  int32       `json:"minreplica"`
-	MaxReplica  int32       `json:"maxreplica"`
-	Cpu         cpu         `json:"cpu,omitempty"`
-	Memory      memory      `json:"memory,omitempty"`
-	PubsubTopic pubsubTopic `json:"pubsubTopic,omitempty"`
-}
-
-type jobFunctionConfig struct {
-	typeMeta          metav1.TypeMeta
-	metav1.ObjectMeta `json:"metadata"`
-	Spec              jobSpec `json:"spec"`
-}
-
-type jobSpec struct {
-	spec
-	Schedule string `json:"schedule,omitempty"`
 }
 
 func (s spec) GetContainers() []corev1.Container {
@@ -185,7 +152,7 @@ func (w WorkloadsFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 				} else {
 					out = append(out, s)
 				}
-				scaling := fnConfig.makeScaledObject(deployment)
+				scaling := fnConfig.Spec.Scaling.makeScaledObject(deployment)
 				if s, err := fnutils.MakeRNode(scaling); err != nil {
 					return nil, err
 				} else {
@@ -352,6 +319,7 @@ func makeService(d appsv1.Deployment) corev1.Service {
 	}
 	return s
 }
+<<<<<<< HEAD
 
 func makeJobSpec(jobConf jobFunctionConfig) batchv1.JobSpec {
 	jobSpec := batchv1.JobSpec{
@@ -423,3 +391,5 @@ func makeJob(jobConfig jobFunctionConfig) batchv1.Job {
 	}
 	return job
 }
+=======
+>>>>>>> 98ff3a3 (changes in jobs and scaling)

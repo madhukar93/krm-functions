@@ -7,12 +7,30 @@ import (
 )
 
 const argoApiVersion = "argoproj.io/v1alpha1"
+const kedaTriggerAuth = "keda-trigger-auth-gcp-credentials"
 
-func Int32(v int32) *int32 {
-	return &v
+type cpu struct {
+	Target string `json:"target,omitempty"`
 }
 
-func (config functionConfig) makeScaledObject(d appsv1.Deployment) kedav1alpha1.ScaledObject {
+type memory struct {
+	Target string `json:"target,omitempty"`
+}
+
+type pubsubTopic struct {
+	Name string `json:"name,omitempty"`
+	Size string `json:"size,omitempty"`
+}
+
+type scalingSpec struct {
+	MinReplica  int32       `json:"minreplica"`
+	MaxReplica  int32       `json:"maxreplica"`
+	Cpu         cpu         `json:"cpu,omitempty"`
+	Memory      memory      `json:"memory,omitempty"`
+	PubsubTopic pubsubTopic `json:"pubsubTopic,omitempty"`
+}
+
+func (spec scalingSpec) makeScaledObject(d appsv1.Deployment) kedav1alpha1.ScaledObject {
 	scaledObject := kedav1alpha1.ScaledObject{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ScaledObject",
@@ -26,31 +44,31 @@ func (config functionConfig) makeScaledObject(d appsv1.Deployment) kedav1alpha1.
 			},
 		},
 		Spec: kedav1alpha1.ScaledObjectSpec{
-			MinReplicaCount: Int32(config.Spec.Scaling.MinReplica),
-			MaxReplicaCount: Int32(config.Spec.Scaling.MaxReplica),
+			MinReplicaCount: &spec.MinReplica,
+			MaxReplicaCount: &spec.MaxReplica,
 			Triggers: []kedav1alpha1.ScaleTriggers{
 				{
 					Type: "gcp-pubsub",
 					Metadata: map[string]string{
-						"subscriptionName": config.Spec.Scaling.PubsubTopic.Name,
-						"subscriptionSize": config.Spec.Scaling.PubsubTopic.Size,
+						"subscriptionName": spec.PubsubTopic.Name,
+						"subscriptionSize": spec.PubsubTopic.Size,
 					},
 					AuthenticationRef: &kedav1alpha1.ScaledObjectAuthRef{
-						Name: "keda-trigger-auth-gcp-credentials",
+						Name: kedaTriggerAuth,
 					},
 				},
 				{
 					Type: "memory",
 					Metadata: map[string]string{
 						"type":  "Utilization",
-						"value": config.Spec.Scaling.Cpu.Target,
+						"value": spec.Cpu.Target,
 					},
 				},
 				{
 					Type: "cpu",
 					Metadata: map[string]string{
 						"type":  "Utilization",
-						"value": config.Spec.Scaling.Cpu.Target,
+						"value": spec.Cpu.Target,
 					},
 				},
 			},

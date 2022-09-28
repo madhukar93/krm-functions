@@ -3,3 +3,4 @@ kind: Kustomization
 
 generators:
   - scaling.yaml
+  - job.yaml
