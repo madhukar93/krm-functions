@@ -72,7 +72,9 @@ spec:
       size:
     # no prom stuff for now
 ```
+
 ## pgbouncer
+
 ```yaml
 apiVersion: LummoKRM
 kind: pgbouncer
@@ -91,6 +93,7 @@ spec:
       POOL_SIZE: 100
       # etc
 ```
+
 vault infra/postgres/tokko-api-postgres/creds
 
 ```
@@ -118,7 +121,6 @@ vault infra/postgres/tokko-api-postgres/creds
 - [ ] monitoring - part of workloads? - yes
 - [ ] canary - part of workloads
 - [ ] pgbouncer - WIP
-
 
 ## FAQ
 
@@ -165,6 +167,7 @@ templating is bad
 - <https://kubevela.io/>
 
 ### Learn
+
 - <https://www.youtube.com/watch?v=YlFUv4F5PYc>
 - <https://kubectl.docs.kubernetes.io/guides/extending_kustomize/>
 - <https://www.gitops.tech/>
@@ -176,6 +179,7 @@ templating is bad
 - <https://kpt.dev/book/02-concepts/03-functions>
 
 ### packages
+
 - yaml & KRM
   - sigs.k8s.io/kustomize/kyaml/kio
   - k8s.io/apimachinery/pkg/util/yaml
