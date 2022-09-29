@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -16,7 +17,7 @@ TODO
 - have validations
 */
 
-func main() {
+func appFunc() error {
 	rw := &kio.ByteReadWriter{
 		Reader:                os.Stdin,
 		Writer:                os.Stdout,
@@ -30,5 +31,14 @@ func main() {
 	}
 	if err := p.Execute(); err != nil {
 		log.Fatal(err)
+		return err
+	}
+	return nil
+}
+
+func main() {
+	if err := appFunc(); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
 	}
 }
