@@ -1,13 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
 	yml "sigs.k8s.io/yaml"
 
+	"github.com/bukukasio/krm-functions/pkg/fnutils"
 	cv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	traefik "github.com/traefik/traefik/v2/pkg/provider/kubernetes/crd/traefik/v1alpha1"
@@ -186,12 +186,12 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 		ingressRouteGrpc.Spec.Routes = append(ingressRouteGrpc.Spec.Routes, newRoute)
 	}
 
-	ingressRouteNode, err := toRNode(ingressRoute)
+	ingressRouteNode, err := fnutils.MakeRNode(ingressRoute)
 	if err != nil {
 		return out, err
 	}
 
-	ingressRouteNodeGrpc, err := toRNode(ingressRouteGrpc)
+	ingressRouteNodeGrpc, err := fnutils.MakeRNode(ingressRouteGrpc)
 	if err != nil {
 		return out, err
 	}
@@ -232,58 +232,6 @@ func unwrap(fnConfig *yaml.RNode) (*functionConfig, error) {
 	}
 
 	return fn, nil
-}
-
-func toRNode(obj interface{}) (*yaml.RNode, error) {
-	switch v := obj.(type) {
-	case cv1.Certificate:
-		{
-			j, err := json.Marshal(v)
-			if err != nil {
-				return nil, err
-			}
-
-			node, err := yaml.ConvertJSONToYamlNode(string(j))
-			if err != nil {
-				return nil, err
-			}
-			return node, nil
-		}
-
-	case corev1.Service:
-		{
-			j, err := json.Marshal(v)
-			if err != nil {
-				return nil, err
-			}
-
-			node, err := yaml.ConvertJSONToYamlNode(string(j))
-			if err != nil {
-				return nil, err
-			}
-			return node, nil
-		}
-
-	case traefik.IngressRoute:
-		{
-			j, err := json.Marshal(v)
-			if err != nil {
-				return nil, err
-			}
-
-			node, err := yaml.ConvertJSONToYamlNode(string(j))
-			if err != nil {
-				return nil, err
-			}
-			return node, nil
-		}
-
-	default:
-		{
-			//fmt.Println(v)
-			return nil, errors.New("unknown type can't convert")
-		}
-	}
 }
 
 func (i *InjectRoutes) Results() (framework.Results, error) {
@@ -385,7 +333,7 @@ func generateService(fn *functionConfig, deploymentPort int32, grpcPort int32) (
 		})
 	}
 	// append service to the file
-	serviceNode, err := toRNode(service)
+	serviceNode, err := fnutils.MakeRNode(service)
 	if err != nil {
 		return nil, err
 	}
@@ -412,7 +360,7 @@ func generateCertificate(fn *functionConfig) (*yaml.RNode, error) {
 		},
 	}
 
-	certificateNode, err := toRNode(certificate)
+	certificateNode, err := fnutils.MakeRNode(certificate)
 	if err != nil {
 		return nil, err
 	}

@@ -11,7 +11,8 @@ COPY go.sum .
 RUN go mod download
 COPY pkg/ pkg/
 COPY ${FUNCTION_DIR}/*.go .
-RUN go build -v -o /usr/local/bin/config-function ./
+# TODO: use build cache
+RUN go build -mod readonly -v -o /usr/local/bin/config-function ./
 
 FROM alpine:latest
 COPY --from=builder /usr/local/bin/config-function /usr/local/bin/config-function
