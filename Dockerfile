@@ -9,6 +9,7 @@ WORKDIR /go/src/
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
+COPY pkg/ pkg/
 COPY ${FUNCTION_DIR}/*.go .
 RUN go build -v -o /usr/local/bin/config-function ./
 

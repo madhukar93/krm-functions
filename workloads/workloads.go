@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/bukukasio/krm-functions/pkg/fnutils"
+
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -12,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
-	"sigs.k8s.io/yaml"
 )
 
 type functionConfig struct {
@@ -174,18 +175,18 @@ func (w WorkloadsFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			} else {
 				deployment := makeDeployment(*fnConfig)
 				service := makeService(deployment)
-				if d, err := makeRNode(deployment); err != nil {
+				if d, err := fnutils.MakeRNode(deployment); err != nil {
 					return nil, err
 				} else {
 					out = append(out, d)
 				}
-				if s, err := makeRNode(service); err != nil {
+				if s, err := fnutils.MakeRNode(service); err != nil {
 					return nil, err
 				} else {
 					out = append(out, s)
 				}
 				scaling := fnConfig.makeScaledObject(deployment)
-				if s, err := makeRNode(scaling); err != nil {
+				if s, err := fnutils.MakeRNode(scaling); err != nil {
 					return nil, err
 				} else {
 					out = append(out, s)
@@ -197,7 +198,7 @@ func (w WorkloadsFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 				return nil, err
 			} else {
 				cronjob := makeCronJob(*fnConfig)
-				if d, err := makeRNode(cronjob); err != nil {
+				if d, err := fnutils.MakeRNode(cronjob); err != nil {
 					return nil, err
 				} else {
 					out = append(out, d)
@@ -209,7 +210,7 @@ func (w WorkloadsFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 				return nil, err
 			} else {
 				job := makeJob(*fnConfig)
-				if d, err := makeRNode(job); err != nil {
+				if d, err := fnutils.MakeRNode(job); err != nil {
 					return nil, err
 				} else {
 					out = append(out, d)
@@ -221,19 +222,6 @@ func (w WorkloadsFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		out = append(out, node)
 	}
 	return out, nil
-}
-
-// makeRNode creates a RNode from yaml Marshallable object
-func makeRNode(in any) (*kyaml.RNode, error) {
-	if yml, err := yaml.Marshal(in); err != nil {
-		return nil, err
-	} else {
-		if rnode, err := kyaml.Parse(string(yml)); err != nil {
-			return nil, err
-		} else {
-			return rnode, nil
-		}
-	}
 }
 
 // parseFnConfig parses the functionConfig into the functionConfig struct
@@ -249,6 +237,9 @@ func parseFnConfig(node *kyaml.RNode) (*functionConfig, error) {
 	}
 	return &config, nil
 }
+
+// TODO: use generic return value
+// use framework native struct for fn configs
 
 // parseFnConfig parses the JobfunctionConfig
 func parseJobFnConfig(node *kyaml.RNode) (*jobFunctionConfig, error) {
@@ -362,7 +353,7 @@ func makeService(d appsv1.Deployment) corev1.Service {
 	return s
 }
 
-func GetJobSpec(jobConf jobFunctionConfig) batchv1.JobSpec {
+func makeJobSpec(jobConf jobFunctionConfig) batchv1.JobSpec {
 	jobSpec := batchv1.JobSpec{
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
@@ -380,7 +371,7 @@ func GetJobSpec(jobConf jobFunctionConfig) batchv1.JobSpec {
 	return jobSpec
 }
 
-func GetJobTemplate(jobConf jobFunctionConfig) batchv1.JobTemplateSpec {
+func makeJobTemplate(jobConf jobFunctionConfig) batchv1.JobTemplateSpec {
 	jobTemplateSpec := batchv1.JobTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: jobConf.Spec.App,
@@ -389,7 +380,7 @@ func GetJobTemplate(jobConf jobFunctionConfig) batchv1.JobTemplateSpec {
 				"app":     jobConf.Spec.App,
 			},
 		},
-		Spec: GetJobSpec(jobConf),
+		Spec: makeJobSpec(jobConf),
 	}
 	return jobTemplateSpec
 }
@@ -409,7 +400,7 @@ func makeCronJob(jobConfig jobFunctionConfig) batchv1.CronJob {
 		},
 		Spec: batchv1.CronJobSpec{
 			Schedule:    jobConfig.Spec.Schedule,
-			JobTemplate: GetJobTemplate(jobConfig),
+			JobTemplate: makeJobTemplate(jobConfig),
 		},
 	}
 	return cj
@@ -428,7 +419,7 @@ func makeJob(jobConfig jobFunctionConfig) batchv1.Job {
 				"app":     jobConfig.Spec.App,
 			},
 		},
-		Spec: GetJobSpec(jobConfig),
+		Spec: makeJobSpec(jobConfig),
 	}
 	return job
 }
