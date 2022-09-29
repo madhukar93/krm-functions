@@ -152,11 +152,13 @@ func (w WorkloadsFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 				} else {
 					out = append(out, s)
 				}
-				scaling := fnConfig.Spec.Scaling.makeScaledObject(deployment)
-				if s, err := fnutils.MakeRNode(scaling); err != nil {
-					return nil, err
-				} else {
-					out = append(out, s)
+				if fnConfig.Spec.Scaling.Enabled == true {
+					scaling := fnConfig.Spec.Scaling.makeScaledObject(deployment)
+					if s, err := fnutils.MakeRNode(scaling); err != nil {
+						return nil, err
+					} else {
+						out = append(out, s)
+					}
 				}
 			}
 			continue
@@ -319,77 +321,3 @@ func makeService(d appsv1.Deployment) corev1.Service {
 	}
 	return s
 }
-<<<<<<< HEAD
-
-func makeJobSpec(jobConf jobFunctionConfig) batchv1.JobSpec {
-	jobSpec := batchv1.JobSpec{
-		Template: corev1.PodTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: jobConf.Spec.App,
-				Labels: map[string]string{
-					"part-of": jobConf.Spec.PartOf,
-					"app":     jobConf.Spec.App,
-				},
-			},
-			Spec: corev1.PodSpec{
-				Containers: jobConf.Spec.GetContainers(),
-			},
-		},
-	}
-	return jobSpec
-}
-
-func makeJobTemplate(jobConf jobFunctionConfig) batchv1.JobTemplateSpec {
-	jobTemplateSpec := batchv1.JobTemplateSpec{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: jobConf.Spec.App,
-			Labels: map[string]string{
-				"part-of": jobConf.Spec.PartOf,
-				"app":     jobConf.Spec.App,
-			},
-		},
-		Spec: makeJobSpec(jobConf),
-	}
-	return jobTemplateSpec
-}
-
-func makeCronJob(jobConfig jobFunctionConfig) batchv1.CronJob {
-	cj := batchv1.CronJob{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "CronJob",
-			APIVersion: "batch/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: jobConfig.Spec.App,
-			Labels: map[string]string{
-				"part-of": jobConfig.Spec.PartOf,
-				"app":     jobConfig.Spec.App,
-			},
-		},
-		Spec: batchv1.CronJobSpec{
-			Schedule:    jobConfig.Spec.Schedule,
-			JobTemplate: makeJobTemplate(jobConfig),
-		},
-	}
-	return cj
-}
-
-func makeJob(jobConfig jobFunctionConfig) batchv1.Job {
-	job := batchv1.Job{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Job",
-			APIVersion: "batch/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: jobConfig.Spec.App,
-			Labels: map[string]string{
-				"part-of": jobConfig.Spec.PartOf,
-				"app":     jobConfig.Spec.App,
-			},
-		},
-		Spec: makeJobSpec(jobConfig),
-	}
-	return job
-}
-=======
->>>>>>> 98ff3a3 (changes in jobs and scaling)
