@@ -8,7 +8,6 @@ import (
 	"github.com/bukukasio/krm-functions/pkg/fnutils"
 
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -27,38 +26,6 @@ type spec struct {
 	App        string      `json:"app"`
 	Containers []container `json:"containers,omitempty"`
 	Scaling    scalingSpec `json:"scaling,omitempty"`
-}
-
-type cpu struct {
-	Target string `json:"target,omitempty"`
-}
-
-type memory struct {
-	Target string `json:"target,omitempty"`
-}
-
-type pubsubTopic struct {
-	Name string `json:"name,omitempty"`
-	Size string `json:"size,omitempty"`
-}
-
-type scalingSpec struct {
-	MinReplica  int32       `json:"minreplica"`
-	MaxReplica  int32       `json:"maxreplica"`
-	Cpu         cpu         `json:"cpu,omitempty"`
-	Memory      memory      `json:"memory,omitempty"`
-	PubsubTopic pubsubTopic `json:"pubsubTopic,omitempty"`
-}
-
-type jobFunctionConfig struct {
-	typeMeta          metav1.TypeMeta
-	metav1.ObjectMeta `json:"metadata"`
-	Spec              jobSpec `json:"spec"`
-}
-
-type jobSpec struct {
-	spec
-	Schedule string `json:"schedule,omitempty"`
 }
 
 func (s spec) GetContainers() []corev1.Container {
@@ -185,11 +152,13 @@ func (w WorkloadsFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 				} else {
 					out = append(out, s)
 				}
-				scaling := fnConfig.makeScaledObject(deployment)
-				if s, err := fnutils.MakeRNode(scaling); err != nil {
-					return nil, err
-				} else {
-					out = append(out, s)
+				if fnConfig.Spec.Scaling.Enabled == true {
+					scaling := fnConfig.Spec.Scaling.makeScaledObject(deployment)
+					if s, err := fnutils.MakeRNode(scaling); err != nil {
+						return nil, err
+					} else {
+						out = append(out, s)
+					}
 				}
 			}
 			continue
@@ -351,75 +320,4 @@ func makeService(d appsv1.Deployment) corev1.Service {
 		})
 	}
 	return s
-}
-
-func makeJobSpec(jobConf jobFunctionConfig) batchv1.JobSpec {
-	jobSpec := batchv1.JobSpec{
-		Template: corev1.PodTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: jobConf.Spec.App,
-				Labels: map[string]string{
-					"part-of": jobConf.Spec.PartOf,
-					"app":     jobConf.Spec.App,
-				},
-			},
-			Spec: corev1.PodSpec{
-				Containers: jobConf.Spec.GetContainers(),
-			},
-		},
-	}
-	return jobSpec
-}
-
-func makeJobTemplate(jobConf jobFunctionConfig) batchv1.JobTemplateSpec {
-	jobTemplateSpec := batchv1.JobTemplateSpec{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: jobConf.Spec.App,
-			Labels: map[string]string{
-				"part-of": jobConf.Spec.PartOf,
-				"app":     jobConf.Spec.App,
-			},
-		},
-		Spec: makeJobSpec(jobConf),
-	}
-	return jobTemplateSpec
-}
-
-func makeCronJob(jobConfig jobFunctionConfig) batchv1.CronJob {
-	cj := batchv1.CronJob{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "CronJob",
-			APIVersion: "batch/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: jobConfig.Spec.App,
-			Labels: map[string]string{
-				"part-of": jobConfig.Spec.PartOf,
-				"app":     jobConfig.Spec.App,
-			},
-		},
-		Spec: batchv1.CronJobSpec{
-			Schedule:    jobConfig.Spec.Schedule,
-			JobTemplate: makeJobTemplate(jobConfig),
-		},
-	}
-	return cj
-}
-
-func makeJob(jobConfig jobFunctionConfig) batchv1.Job {
-	job := batchv1.Job{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Job",
-			APIVersion: "batch/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: jobConfig.Spec.App,
-			Labels: map[string]string{
-				"part-of": jobConfig.Spec.PartOf,
-				"app":     jobConfig.Spec.App,
-			},
-		},
-		Spec: makeJobSpec(jobConfig),
-	}
-	return job
 }
