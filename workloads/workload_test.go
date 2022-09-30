@@ -6,6 +6,9 @@ import (
 	"log"
 	"os"
 	"testing"
+
+	"github.com/wI2L/jsondiff"
+	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 var deploymentInput = `apiVersion: config.kubernetes.io/v1
@@ -136,7 +139,7 @@ items:
 var jobInput = ``
 var jobOutput = ``
 
-func compare(in string, expected_out string) bool {
+func compare(in string, expected_output string) bool {
 	oldStdin := os.Stdin
 	oldStdout := os.Stdout
 	defer func() {
@@ -181,9 +184,10 @@ func compare(in string, expected_out string) bool {
 		log.Fatal(err)
 	}
 
-	out := <-outC
-	if out != expected_out {
-		log.Printf("expected %s\nbut got %s\n", expected_out, out)
+	output := <-outC
+
+	diff := getDiff(output, expected_output)
+	if diff != nil {
 		return false
 	}
 	return true
@@ -199,4 +203,11 @@ func TestJobs(t *testing.T) {
 	if compare(jobInput, jobOutput) != true {
 		t.Fatal()
 	}
+}
+
+func getDiff(output string, expected_output string) jsondiff.Patch {
+	output_json, _ := yaml.ToJSON([]byte(output))
+	expected_output_json, _ := yaml.ToJSON([]byte(expected_output))
+	diff, _ := jsondiff.CompareJSON(output_json, expected_output_json)
+	return diff
 }
