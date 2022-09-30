@@ -195,7 +195,7 @@ func (conf functionConfig) GetObjectMeta() metav1.ObjectMeta {
 	objectMeta := metav1.ObjectMeta{
 		Name: getName(conf.Spec),
 		Labels: map[string]string{
-			"app":     conf.Spec.App,
+			"app":     getName(conf.Spec),
 			"part-of": conf.Spec.PartOf,
 		},
 	}
