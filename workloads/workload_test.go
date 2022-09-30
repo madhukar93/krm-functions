@@ -3,11 +3,12 @@ package main
 import (
 	"bytes"
 	"io"
+	"log"
 	"os"
 	"testing"
 )
 
-var input = `apiVersion: config.kubernetes.io/v1
+var deploymentInput = `apiVersion: config.kubernetes.io/v1
 kind: ResourceList
 items: 
 - apiVersion: LummoKRM
@@ -40,7 +41,7 @@ items:
         size: "500"
 `
 
-var output = `apiVersion: config.kubernetes.io/v1
+var deploymentOutput = `apiVersion: config.kubernetes.io/v1
 kind: ResourceList
 items:
 - apiVersion: apps/v1
@@ -132,7 +133,10 @@ items:
   status: {}
 `
 
-func Test(t *testing.T) {
+var jobInput = ``
+var jobOutput = ``
+
+func compare(in string, expected_out string) bool {
 	oldStdin := os.Stdin
 	oldStdout := os.Stdout
 	defer func() {
@@ -154,31 +158,45 @@ func Test(t *testing.T) {
 
 	tmpfile, err := os.CreateTemp("", "test-input")
 	if err != nil {
-		t.Fatal(err)
+		log.Fatal(err)
 	}
 	defer os.Remove(tmpfile.Name()) // noerrcheck
-	if _, err := tmpfile.Write([]byte(input)); err != nil {
-		t.Fatal(err)
+	if _, err := tmpfile.Write([]byte(in)); err != nil {
+		log.Fatal(err)
 	}
 	if _, err := tmpfile.Seek(0, 0); err != nil {
-		t.Fatal(err)
+		log.Fatal(err)
 	}
 	os.Stdin = tmpfile
 
 	err = appFunc()
 	if err != nil {
-		t.Fatal(err)
+		log.Fatal(err)
 	}
 	if err := tmpfile.Close(); err != nil {
-		t.Fatal(err)
+		log.Fatal(err)
 	}
 
 	if err := w.Close(); err != nil {
-		t.Fatal(err)
+		log.Fatal(err)
 	}
 
 	out := <-outC
-	if out != output {
-		t.Fatalf("expected %s\nbut got %s\n", output, out)
+	if out != expected_out {
+		log.Printf("expected %s\nbut got %s\n", expected_out, out)
+		return false
+	}
+	return true
+}
+
+func TestDeployment(t *testing.T) {
+	if compare(deploymentInput, deploymentOutput) != true {
+		t.Fatal()
+	}
+}
+
+func TestJobs(t *testing.T) {
+	if compare(jobInput, jobOutput) != true {
+		t.Fatal()
 	}
 }
