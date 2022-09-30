@@ -22,10 +22,10 @@ type functionConfig struct {
 }
 
 type spec struct {
-	PartOf     string      `json:"part-of"`
-	App        string      `json:"app"`
-	Containers []container `json:"containers,omitempty"`
-	Scaling    scalingSpec `json:"scaling,omitempty"`
+	PartOf     string       `json:"part-of"`
+	App        string       `json:"app"`
+	Containers []container  `json:"containers,omitempty"`
+	Scaling    *scalingSpec `json:"scaling,omitempty"`
 }
 
 func (s spec) GetContainers() []corev1.Container {
@@ -152,7 +152,7 @@ func (w WorkloadsFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 				} else {
 					out = append(out, s)
 				}
-				if fnConfig.Spec.Scaling.Enabled == true {
+				if fnConfig.Spec.Scaling != nil {
 					scaling := fnConfig.Spec.Scaling.makeScaledObject(deployment)
 					if s, err := fnutils.MakeRNode(scaling); err != nil {
 						return nil, err
