@@ -28,7 +28,6 @@ type scalingSpec struct {
 	Cpu         cpu         `json:"cpu,omitempty"`
 	Memory      memory      `json:"memory,omitempty"`
 	PubsubTopic pubsubTopic `json:"pubsubTopic,omitempty"`
-	Enabled     bool        `json:"enabled"`
 }
 
 func (spec scalingSpec) makeScaledObject(d appsv1.Deployment) kedav1alpha1.ScaledObject {

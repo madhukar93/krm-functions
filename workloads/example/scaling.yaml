@@ -23,7 +23,6 @@ spec:
       configs:
         - foobar-api-config
   scaling: 
-    enabled: true
     minreplica: 1
     maxreplica: 10
     cpu:
