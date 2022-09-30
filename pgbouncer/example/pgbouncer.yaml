@@ -7,13 +7,13 @@ metadata:
       container:
         image: gcr.io/beecash-prod/infra/krm-functions/pgbouncer:latest
 spec:
-  part-of: tokko-coupon
-  product: tokko
+  app: foobar-api
+  part-of: foobar
   connection:
     host: hostname
     port: 1234
     database: foobar
-    user: username
+    username: username
     password: password
     credentialsSecret: tokko-api-postgres-creds # secret that contains creds key in username:pass format
   config:
