@@ -139,7 +139,7 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 
 		exp, err := createMatchExpression(hosts, inputRoute.Match)
 		if err != nil {
-			return out, err
+			return nil, err
 		}
 		// service
 		service := traefik.Service{}
@@ -188,22 +188,22 @@ func (in *InjectRoutes) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 
 	ingressRouteNode, err := fnutils.MakeRNode(ingressRoute)
 	if err != nil {
-		return out, err
+		return nil, err
 	}
 
 	ingressRouteNodeGrpc, err := fnutils.MakeRNode(ingressRouteGrpc)
 	if err != nil {
-		return out, err
+		return nil, err
 	}
 
 	serviceNode, err := generateService(fn, httpsPort, grpcPort)
 	if err != nil {
-		return out, err
+		return nil, err
 	}
 
 	certificateNode, err := generateCertificate(fn)
 	if err != nil {
-		return out, err
+		return nil, err
 	}
 
 	if fn.Grpc {

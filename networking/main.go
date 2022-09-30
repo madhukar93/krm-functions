@@ -10,8 +10,7 @@ import (
 )
 
 func main() {
-	p := InjectRouteProcessor{}
-	cmd := command.Build(&p, command.StandaloneEnabled, false)
+	cmd := command.Build(framework.ResourceListProcessorFunc(Process), command.StandaloneEnabled, false)
 
 	cmd.Short = "Inject files wrapped in KRM resources into ConfigMap keys"
 	cmd.Long = "Inject files or templates wrapped in KRM resources into ConfigMap keys"
@@ -22,9 +21,7 @@ func main() {
 	}
 }
 
-type InjectRouteProcessor struct{}
-
-func (p *InjectRouteProcessor) Process(resourceList *framework.ResourceList) error {
+func Process(resourceList *framework.ResourceList) error {
 	fnConfig := resourceList.FunctionConfig
 
 	if fnConfig == nil {
