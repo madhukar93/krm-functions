@@ -1,9 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
-	"os"
 
+	"github.com/bukukasio/krm-functions/pkg/fnutils"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -11,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	k8syaml "sigs.k8s.io/yaml"
+	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 type functionConfig struct {
@@ -330,72 +331,31 @@ func makePodDisruptionBudget(conf functionConfig) policyv1.PodDisruptionBudget {
 	return podDisruptionBudget
 }
 
-func main() {
-	// inputs
-	var func_config functionConfig
-
-	func_config.ObjectMeta.Name = "pgbouncer"
-	func_config.Spec.Product = "tokko"
-	func_config.Spec.PartOf = "tokko-coupon"
-	func_config.Spec.Config = map[string]string{
-		"LISTEN_PORT":                 "6432",
-		"MAX_CLIENT_CONN":             "1000",
-		"PGBOUNCER_DEFAULT_POOL_SIZE": "200",
-		"PGBOUNCER_MAX_CLIENT_CONN":   "5000",
-		"POSTGRESQL_HOST":             " 10.48.0.2",
+func appendRnodes(in []*kyaml.RNode, objects ...any) ([]*kyaml.RNode, error) {
+	out := []*kyaml.RNode{}
+	var errors []error
+	for _, o := range objects {
+		r, err := fnutils.MakeRNode(o)
+		if err != nil {
+			errors = append(errors, err)
+		}
+		out = append(out, r)
 	}
-	func_config.Spec.Connection.Database = "testdb"
-	func_config.Spec.Connection.Username = "user"
-	func_config.Spec.Connection.Password = "pass"
-	func_config.Spec.Connection.CredentialsSecret = "test-secret"
-	func_config.Spec.Connection.Port = "6432"
-
-	// output file
-	var filename = "./output.yaml"
-	f, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		panic(err)
+	if len(errors) > 0 {
+		var combinedErrors bytes.Buffer
+		for _, e := range errors {
+			combinedErrors.WriteString(fmt.Sprintln("%s", e.Error()))
+		}
+		return nil, fmt.Errorf(combinedErrors.String())
 	}
-	defer f.Close()
+	return out, nil
+}
 
-	// call service generate func
-	svc_obj := makeService(func_config)
-	svc, _ := k8syaml.Marshal(svc_obj)
-	fmt.Println(string(svc))
-	if _, err = f.WriteString(string(svc) + "---"); err != nil {
-		panic(err)
-	}
-	// call deployment generate func
-	deployment_obj := makeDeployment(func_config)
-	deployment, _ := k8syaml.Marshal(deployment_obj)
-	fmt.Println(string(deployment))
-	if _, err = f.WriteString("\n" + string(deployment) + "---"); err != nil {
-		panic(err)
-	}
-
-	//call podmonitor generate func
-	podmonitor_obj := makePodMonitor(func_config)
-	podmonitor, _ := k8syaml.Marshal(podmonitor_obj)
-	fmt.Println(string(podmonitor))
-	if _, err = f.WriteString("\n" + string(podmonitor) + "---"); err != nil {
-		panic(err)
-	}
-
-	// call config map generate func
-	cm_obj := makeConfigMap(func_config)
-	cm, _ := k8syaml.Marshal(cm_obj)
-	fmt.Println(string(cm))
-	if _, err = f.WriteString("\n" + string(cm) + "---"); err != nil {
-		panic(err)
-	}
-
-	// call pdb map generate func
-	pdb_obj := makePodDisruptionBudget(func_config)
-	//pdb, _ := yaml.Marshal(pdb_obj)
-	pdb, _ := k8syaml.Marshal(pdb_obj)
-	fmt.Println(string(pdb))
-	if _, err = f.WriteString("\n" + string(pdb)); err != nil {
-		panic(err)
-	}
-
+func (f functionConfig) filter(in []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	svc := makeService(f)
+	deployment := makeDeployment(f)
+	podmonitor := makePodMonitor(f)
+	cm := makeConfigMap(f)
+	pdb := makePodDisruptionBudget(f)
+	return appendRnodes(in, svc, deployment, podmonitor, cm, pdb)
 }
