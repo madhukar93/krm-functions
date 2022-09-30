@@ -5,7 +5,7 @@ metadata:
   annotations:
     config.kubernetes.io/function: |
       container:
-        image: pgbouncer-krm-functions:v0.1.0
+        image: gcr.io/beecash-prod/infra/krm-functions/pgbouncer:latest
 spec:
   part-of: tokko-coupon
   product: tokko
