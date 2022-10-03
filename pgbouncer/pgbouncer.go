@@ -16,12 +16,12 @@ import (
 )
 
 const (
-	pgbouncer_image           = "gcr.io/beecash-prod/pgbouncer:bitnami-1.17.0-debian-11-r7"
-	prometheus_exporter_image = "spreaker/prometheus-pgbouncer-exporter"
-	cpu_limit                 = "500m"
-	cpu_request               = "10m"
-	memory_limit              = "500Mi"
-	memory_request            = "50Mi"
+	pgbouncerImage          = "gcr.io/beecash-prod/pgbouncer:bitnami-1.17.0-debian-11-r7"
+	prometheusExporterImage = "spreaker/prometheus-pgbouncer-exporter"
+	cpuLimit                = "500m"
+	cpuRequest              = "10m"
+	memoryLimit             = "500Mi"
+	memoryRequest           = "50Mi"
 )
 
 type functionConfig struct {
@@ -49,7 +49,7 @@ type connection struct {
 func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
 	Containers := []corev1.Container{
 		{
-			Image: pgbouncer_image,
+			Image: pgbouncerImage,
 			EnvFrom: []corev1.EnvFromSource{
 				{
 					ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -94,12 +94,12 @@ func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
 			},
 			Resources: corev1.ResourceRequirements{
 				Limits: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse(cpu_limit),
-					corev1.ResourceMemory: resource.MustParse(memory_limit),
+					corev1.ResourceCPU:    resource.MustParse(cpuLimit),
+					corev1.ResourceMemory: resource.MustParse(memoryLimit),
 				},
 				Requests: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse(cpu_request),
-					corev1.ResourceMemory: resource.MustParse(memory_request),
+					corev1.ResourceCPU:    resource.MustParse(cpuRequest),
+					corev1.ResourceMemory: resource.MustParse(memoryRequest),
 				},
 			},
 			Name: "pgbouncer",
@@ -135,7 +135,7 @@ func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
 			},
 		},
 		{
-			Image: prometheus_exporter_image,
+			Image: prometheusExporterImage,
 			Name:  "prometheus-pgbouncer-exporter",
 			Env: []corev1.EnvVar{
 
@@ -156,12 +156,12 @@ func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
 			},
 			Resources: corev1.ResourceRequirements{
 				Limits: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse(cpu_limit),
-					corev1.ResourceMemory: resource.MustParse(memory_limit),
+					corev1.ResourceCPU:    resource.MustParse(cpuLimit),
+					corev1.ResourceMemory: resource.MustParse(memoryLimit),
 				},
 				Requests: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse(cpu_request),
-					corev1.ResourceMemory: resource.MustParse(memory_request),
+					corev1.ResourceCPU:    resource.MustParse(cpuRequest),
+					corev1.ResourceMemory: resource.MustParse(memoryRequest),
 				},
 			},
 		},
