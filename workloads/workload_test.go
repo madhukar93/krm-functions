@@ -1,14 +1,9 @@
 package main
 
 import (
-	"bytes"
-	"io"
-	"log"
-	"os"
 	"testing"
 
-	"github.com/wI2L/jsondiff"
-	"k8s.io/apimachinery/pkg/util/yaml"
+	"github.com/bukukasio/krm-functions/pkg/fnutils"
 )
 
 var deploymentInput = `apiVersion: config.kubernetes.io/v1
@@ -136,78 +131,138 @@ items:
   status: {}
 `
 
-var jobInput = ``
-var jobOutput = ``
+var jobInput = `apiVersion: config.kubernetes.io/v1
+kind: ResourceList
+items: 
+- apiVersion: lummoKRM/v1
+  kind: LummoJob
+  metadata:
+    name: test-job
+  spec:
+    part-of: foobar
+    app: foobar-api
+    containers:
+    - name: foobar-api
+      image: foobar
+      command: ["python", "server.py"]
+      secrets:
+        - foobar-api-database-secrets
+      configs:
+        - foobar-api-config`
 
-func compare(in string, expected_output string) bool {
-	oldStdin := os.Stdin
-	oldStdout := os.Stdout
-	defer func() {
-		os.Stdin = oldStdin
-		os.Stdout = oldStdout
-	}()
-	r, w, _ := os.Pipe()
-	os.Stdout = w
+var jobOutput = `apiVersion: config.kubernetes.io/v1
+kind: ResourceList
+items:
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: foobar-api
+      part-of: foobar
+    name: foobar-api
+  spec:
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: foobar-api
+          part-of: foobar
+        name: foobar-api
+      spec:
+        containers:
+        - command:
+          - python
+          - server.py
+          envFrom:
+          - configMapRef:
+              name: foobar-api-config
+          - secretRef:
+              name: foobar-api-database-secrets
+          image: foobar
+          name: foobar-api
+          resources: {}
+  status: {}
+`
 
-	outC := make(chan string)
-	go func() {
-		var buf bytes.Buffer
-		_, err := io.Copy(&buf, r)
-		if err != nil {
-			outC <- ""
-		}
-		outC <- buf.String()
-	}()
+var cronInput = `apiVersion: config.kubernetes.io/v1
+kind: ResourceList
+items: 
+- apiVersion: lummoKRM/v1
+  kind: LummoCron
+  metadata:
+    name: test-cron
+  spec:
+    part-of: foobar
+    app: foobar-api
+    schedule: "* * * * *"
+    containers:
+      - name: foobar-api
+        image: foobar
+        command: ["python", "server.py"]
+        secrets:
+        - foobar-api-database-secrets
+        configs:
+        - foobar-api-config`
 
-	tmpfile, err := os.CreateTemp("", "test-input")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer os.Remove(tmpfile.Name()) // noerrcheck
-	if _, err := tmpfile.Write([]byte(in)); err != nil {
-		log.Fatal(err)
-	}
-	if _, err := tmpfile.Seek(0, 0); err != nil {
-		log.Fatal(err)
-	}
-	os.Stdin = tmpfile
-
-	err = appFunc()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := tmpfile.Close(); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := w.Close(); err != nil {
-		log.Fatal(err)
-	}
-
-	output := <-outC
-
-	diff := getDiff(output, expected_output)
-	if diff != nil {
-		return false
-	}
-	return true
-}
+var cronOutput = `apiVersion: config.kubernetes.io/v1
+kind: ResourceList
+items:
+- apiVersion: batch/v1
+  kind: CronJob
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: foobar-api
+      part-of: foobar
+    name: foobar-api
+  spec:
+    jobTemplate:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: foobar-api
+          part-of: foobar
+        name: foobar-api
+      spec:
+        template:
+          metadata:
+            creationTimestamp: null
+            labels:
+              app: foobar-api
+              part-of: foobar
+            name: foobar-api
+          spec:
+            containers:
+            - command:
+              - python
+              - server.py
+              envFrom:
+              - configMapRef:
+                  name: foobar-api-config
+              - secretRef:
+                  name: foobar-api-database-secrets
+              image: foobar
+              name: foobar-api
+              resources: {}
+    schedule: '* * * * *'
+  status: {}
+`
 
 func TestDeployment(t *testing.T) {
-	if compare(deploymentInput, deploymentOutput) != true {
+	if fnutils.Compare(appFunc, deploymentInput, deploymentOutput) != true {
 		t.Fatal()
 	}
 }
 
 func TestJobs(t *testing.T) {
-	if compare(jobInput, jobOutput) != true {
+	if fnutils.Compare(appFunc, jobInput, jobOutput) != true {
 		t.Fatal()
 	}
 }
 
-func getDiff(output string, expected_output string) jsondiff.Patch {
-	output_json, _ := yaml.ToJSON([]byte(output))
-	expected_output_json, _ := yaml.ToJSON([]byte(expected_output))
-	diff, _ := jsondiff.CompareJSON(output_json, expected_output_json)
-	return diff
+func TestCronJobs(t *testing.T) {
+	if fnutils.Compare(appFunc, cronInput, cronOutput) != true {
+		t.Fatal()
+	}
 }
