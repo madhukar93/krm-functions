@@ -1,4 +1,4 @@
-package fnutils
+package testing
 
 import (
 	"bytes"

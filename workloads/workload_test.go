@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/bukukasio/krm-functions/pkg/fnutils"
+	fntesting "github.com/bukukasio/krm-functions/pkg/testing"
 )
 
 var deploymentInput = `apiVersion: config.kubernetes.io/v1
@@ -250,19 +250,19 @@ items:
 `
 
 func TestDeployment(t *testing.T) {
-	if fnutils.Compare(appFunc, deploymentInput, deploymentOutput) != true {
+	if fntesting.Compare(appFunc, deploymentInput, deploymentOutput) != true {
 		t.Fatal()
 	}
 }
 
 func TestJobs(t *testing.T) {
-	if fnutils.Compare(appFunc, jobInput, jobOutput) != true {
+	if fntesting.Compare(appFunc, jobInput, jobOutput) != true {
 		t.Fatal()
 	}
 }
 
 func TestCronJobs(t *testing.T) {
-	if fnutils.Compare(appFunc, cronInput, cronOutput) != true {
+	if fntesting.Compare(appFunc, cronInput, cronOutput) != true {
 		t.Fatal()
 	}
 }
