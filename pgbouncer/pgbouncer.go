@@ -187,7 +187,7 @@ func GetTypeMeta(kind string, apiversion string) metav1.TypeMeta {
 }
 
 func getName(conf spec) string {
-	name := conf.App + "-" + "pgbouncer"
+	name := conf.PartOf + "-" + "pgbouncer"
 	return name
 }
 
