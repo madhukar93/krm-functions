@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/bukukasio/krm-functions/pkg/fnutils"
 
@@ -314,20 +313,7 @@ func makeDeployment(conf functionConfig) appsv1.Deployment {
 	d.ObjectMeta.Name = conf.Spec.App
 	conf.addDeploymentLabels(d)
 	conf.addContainers(d)
-	conf.addDeploymentAnnotations(d)
 	return *d
-}
-
-func (c *functionConfig) addDeploymentAnnotations(d *appsv1.Deployment) error {
-	image := strings.Split(d.Spec.Template.Spec.Containers[0].Image, ":")
-	image_tag := image[len(image)-1]
-	labels := map[string]string{
-		"app.tokko.io/version": image_tag,
-	}
-
-	d.ObjectMeta.SetAnnotations(labels)
-	d.Spec.Template.ObjectMeta.SetAnnotations(labels)
-	return nil
 }
 
 func makeService(d appsv1.Deployment) corev1.Service {

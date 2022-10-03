@@ -1,4 +1,4 @@
-SHELL = /bin/zsh
+SHELL = /bin/bash
 
 
 test: check-function-var
@@ -10,7 +10,7 @@ e2e: check-function-var build
 debug: check-function-var
 	dlv debug ${function} -r <(cat ${function}/example/resource_list.yaml)
 
-debug-linux: check-function-var
+debug-ignore-go-dep: check-function-var
 	dlv debug ./${function} --check-go-version=false -r <(cat ${function}/example/resource_list.yaml)
 
 build: check-function-var
