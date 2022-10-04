@@ -311,7 +311,13 @@ func makeService(d appsv1.Deployment) corev1.Service {
 	s.Spec.Selector = d.Spec.Selector.MatchLabels
 	// actually should happen for all containers? One service per deployment or container? How do services scale
 	// but ingress is probably only needed for app cotainer
-	ac, _ := getAppContainer(d)
+	ac, err := getAppContainer(d)
+
+	if err != nil {
+		// TODO validation error
+		panic(err)
+	}
+
 	for _, p := range ac.Ports {
 		s.Spec.Ports = append(s.Spec.Ports, corev1.ServicePort{
 			Name:       p.Name,
