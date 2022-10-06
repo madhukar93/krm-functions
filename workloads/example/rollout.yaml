@@ -1,0 +1,22 @@
+apiVersion: lummoKRM/v1
+kind: LummoRollout
+metadata:
+  name: test-app
+  namespace: test
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: gcr.io/beecash-prod/infra/krm-functions/workloads:latest
+spec:
+  part-of: foobar
+  app: foobar-api
+  containers:
+    - name: foobar-api
+      image: foobar
+      command: ["python", "server.py"]
+      secrets:
+        - foobar-api-database-secrets
+      configs:
+        - foobar-api-config
+  strategy:
+    analysis-env: pre-prod # prod/pre-prod

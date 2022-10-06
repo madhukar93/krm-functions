@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/bukukasio/krm-functions/pkg/fnutils"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,6 +25,7 @@ type spec struct {
 	App        string       `json:"app"`
 	Containers []container  `json:"containers,omitempty"`
 	Scaling    *scalingSpec `json:"scaling,omitempty"`
+	Strategy   *strategy    `json:"strategy,omitempty"`
 }
 
 func (s spec) GetContainers() []corev1.Container {
@@ -186,8 +186,19 @@ func (w WorkloadsFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 				}
 			}
 			continue
+		} else if node.GetKind() == "LummoRollout" {
+			if fnConfig, err := parseFnConfig(node); err != nil {
+				return nil, err
+			} else {
+				rollout := makeRollout(*fnConfig)
+				if d, err := fnutils.MakeRNode(rollout); err != nil {
+					return nil, err
+				} else {
+					out = append(out, d)
+				}
+			}
+			continue
 		}
-
 		out = append(out, node)
 	}
 	return out, nil
