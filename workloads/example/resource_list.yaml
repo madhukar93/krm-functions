@@ -12,18 +12,23 @@ items:
     spec:
       part-of: foobar
       app: foobar-api
+      main-container: foobar-api
       containers:
-        - name: foobar-api
-          image: foobar
-          command: ["python", "server.py"]
-          grpc:
-            port: 3000
-          http:
-            port: 2000
-          secrets:
-            - foobar-api-database-secrets
-            - foobar-api-payment-api-creds
-          configs:
-            - foobar-api-config
+        - name: foobar-sidecar-1
+          image: alpine:3.16.2
+          command: ["sleep"]
+          args: ['30m']
           monitoring:
-            datadog: true
+            datadog: false
+        - name: foobar-api
+          image: nginx:1.23.1-alpine
+          http:
+            port: 80
+          monitoring:
+            datadog: false
+        - name: foobar-sidecar-2
+          image: alpine:3.15.6
+          command: ["sleep"]
+          args: ['30m']
+          monitoring:
+            datadog: false

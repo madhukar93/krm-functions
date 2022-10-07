@@ -22,10 +22,11 @@ type functionConfig struct {
 }
 
 type spec struct {
-	PartOf     string       `json:"part-of"`
-	App        string       `json:"app"`
-	Containers []container  `json:"containers,omitempty"`
-	Scaling    *scalingSpec `json:"scaling,omitempty"`
+	PartOf        string       `json:"part-of"`
+	App           string       `json:"app"`
+	MainContainer string       `json:"main-container"`
+	Containers    []container  `json:"containers,omitempty"`
+	Scaling       *scalingSpec `json:"scaling,omitempty"`
 }
 
 func (s spec) GetContainers() []corev1.Container {
@@ -313,9 +314,18 @@ func makeDeployment(conf functionConfig) appsv1.Deployment {
 	d.ObjectMeta.Name = conf.Spec.App
 	conf.addDeploymentLabels(d)
 	conf.addContainers(d)
+	conf.addDeploymentAnnotations(d)
 	return *d
 }
 
+func (c *functionConfig) addDeploymentAnnotations(d *appsv1.Deployment) error {
+	annotations := map[string]string{
+		"app.kubernetes.io/main-container": c.Spec.MainContainer,
+	}
+	d.ObjectMeta.SetAnnotations(annotations)
+	d.Spec.Template.ObjectMeta.SetAnnotations(annotations)
+	return nil
+}
 func makeService(d appsv1.Deployment) corev1.Service {
 	s := corev1.Service{
 		TypeMeta: metav1.TypeMeta{
