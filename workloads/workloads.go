@@ -97,7 +97,7 @@ type monitoring struct {
 func (m monitoring) setEnvironments(c *corev1.Container) {
 	dd_trace := corev1.EnvVar{Name: "ENABLE_APM_TRACING", Value: "true"}
 	dd_host := corev1.EnvVar{Name: "DD_AGENT_HOST", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "status.hostIP"}}}
-	dd_version := corev1.EnvVar{Name: "DD_VERSION", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.annotations['app.tokko.io/version']"}}}
+	dd_version := corev1.EnvVar{Name: "DD_VERSION", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.annotations['app.kubernetes.io/main-container']"}}}
 	dd_env := corev1.EnvVar{Name: "DD_ENV", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.annotations['app.tokko.io/env']"}}}
 	dd_service := corev1.EnvVar{Name: "SERVICE_NAME", ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.labels['app']"}}}
 
