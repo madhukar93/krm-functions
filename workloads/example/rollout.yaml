@@ -19,6 +19,7 @@ spec:
       configs:
         - foobar-api-config
   strategy:
-    env: pre-prod # prod/pre-prod
+    env: prod # prod/pre-prod
     metrics: error-rate
     request-type: graphql
+    threshold: "300"

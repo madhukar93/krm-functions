@@ -13,6 +13,7 @@ type strategy struct {
 	AnalysisEnv     string `json:"env"`
 	AnalysisMetrics string `json:"metrics"`
 	RequestType     string `json:"request-type"`
+	Threshold       string `json:"threshold"`
 }
 
 func IntPtr(x int32) *int32 {
@@ -37,8 +38,8 @@ func (c *functionConfig) addRolloutLabels(r *rolloutv1alpha1.Rollout) error {
 	return nil
 }
 
-func (s *strategy) getAnalysisTempateName(r *rolloutv1alpha1.Rollout) string {
-	var analysisTemplateName = fmt.Sprintf("analysis-datadog-%v-%v-%v", r.Spec.Template.Labels["part-of"], s.RequestType, s.AnalysisMetrics)
+func (s *strategy) getAnalysisTempateName() string {
+	var analysisTemplateName = fmt.Sprintf("analysis-datadog-%v-%v", s.RequestType, s.AnalysisMetrics)
 	return analysisTemplateName
 }
 
@@ -78,15 +79,13 @@ func (s *strategy) setCanarySteps(rollout *rolloutv1alpha1.Rollout) error {
 
 func (s *strategy) addStrategy(r *rolloutv1alpha1.Rollout) error {
 
-	// TODO : Template name to be fetched dynamically, hardcoded to get started with the canary implementation
-
 	r.Spec.Strategy = rolloutv1alpha1.RolloutStrategy{
 		Canary: &rolloutv1alpha1.CanaryStrategy{
 			Analysis: &rolloutv1alpha1.RolloutAnalysisBackground{
 				RolloutAnalysis: rolloutv1alpha1.RolloutAnalysis{
 					Templates: []rolloutv1alpha1.RolloutAnalysisTemplate{
 						{
-							TemplateName: s.getAnalysisTempateName(r),
+							TemplateName: s.getAnalysisTempateName(),
 						},
 					},
 					Args: []rolloutv1alpha1.AnalysisRunArgument{
@@ -113,6 +112,10 @@ func (s *strategy) addStrategy(r *rolloutv1alpha1.Rollout) error {
 									FieldPath: "metadata.annotations['app.tokko.io/version']",
 								},
 							},
+						},
+						{
+							Name:  "threshold",
+							Value: s.Threshold,
 						},
 					},
 				},
