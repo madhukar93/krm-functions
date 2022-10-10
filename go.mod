@@ -6,7 +6,7 @@ require (
 	github.com/cert-manager/cert-manager v1.9.1
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.59.2
 	github.com/stretchr/testify v1.8.0
-	github.com/traefik/traefik/v2 v2.8.7
+	github.com/traefik/traefik/v2 v2.8.8
 	k8s.io/api v0.25.2
 	k8s.io/apimachinery v0.25.2
 	sigs.k8s.io/kustomize/kyaml v0.13.9
@@ -66,7 +66,7 @@ require (
 	github.com/wI2L/jsondiff v0.2.0
 	github.com/xlab/treeprint v1.1.0 // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
-	golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b // indirect
+	golang.org/x/net v0.0.0-20220927171203-f486391704dc // indirect
 	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
