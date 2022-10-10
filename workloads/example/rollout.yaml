@@ -19,4 +19,6 @@ spec:
       configs:
         - foobar-api-config
   strategy:
-    analysis-env: pre-prod # prod/pre-prod
+    env: pre-prod # prod/pre-prod
+    metrics: error-rate
+    request-type: graphql

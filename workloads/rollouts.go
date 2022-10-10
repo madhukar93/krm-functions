@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	rolloutv1alpha1 "github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -8,7 +10,9 @@ import (
 )
 
 type strategy struct {
-	AnalysisEnv string `json:"analysis-env"`
+	AnalysisEnv     string `json:"env"`
+	AnalysisMetrics string `json:"metrics"`
+	RequestType     string `json:"request-type"`
 }
 
 func IntPtr(x int32) *int32 {
@@ -31,6 +35,11 @@ func (c *functionConfig) addRolloutLabels(r *rolloutv1alpha1.Rollout) error {
 		r.Spec.Template.Labels[k] = v
 	}
 	return nil
+}
+
+func (s *strategy) getAnalysisTempateName(r *rolloutv1alpha1.Rollout) string {
+	var analysisTemplateName = fmt.Sprintf("analysis-datadog-%v-%v-%v", r.Spec.Template.Labels["part-of"], s.RequestType, s.AnalysisMetrics)
+	return analysisTemplateName
 }
 
 func (s *strategy) setCanarySteps(rollout *rolloutv1alpha1.Rollout) error {
@@ -77,7 +86,7 @@ func (s *strategy) addStrategy(r *rolloutv1alpha1.Rollout) error {
 				RolloutAnalysis: rolloutv1alpha1.RolloutAnalysis{
 					Templates: []rolloutv1alpha1.RolloutAnalysisTemplate{
 						{
-							TemplateName: "analysis-datadog-tokko-api-graphql-error-rate",
+							TemplateName: s.getAnalysisTempateName(r),
 						},
 					},
 					Args: []rolloutv1alpha1.AnalysisRunArgument{
