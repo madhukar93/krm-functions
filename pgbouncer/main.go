@@ -11,10 +11,10 @@ import (
 )
 
 func cmd() *cobra.Command {
-	config := &functionConfig{}
+	config := functionConfig{}
 	p := framework.SimpleProcessor{
-		Filter: kio.FilterFunc(wrapFilter(config)),
-		Config: config,
+		Filter: kio.FilterFunc(config.Filter),
+		Config: &config,
 	}
 	cmd := command.Build(p, command.StandaloneEnabled, false)
 	cmd.Short = "generate pgbouncer resources for function config"

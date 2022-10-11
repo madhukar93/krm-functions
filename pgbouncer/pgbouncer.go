@@ -314,15 +314,13 @@ func makeRNodes(objects ...metav1.Object) ([]*kyaml.RNode, error) {
 	return out, nil
 }
 
-func wrapFilter(f *functionConfig) func(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
-	return func(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
-		svc := f.getService()
-		deployment := f.getDeployment()
-		podmonitor := f.getPodMonitor()
-		cm := f.getConfigMap()
-		pdb := f.getPodDisruptionBudget()
-		newNodes, err := makeRNodes(&svc, &deployment, &podmonitor, &cm, &pdb)
-		items = append(items, newNodes...)
-		return items, err
-	}
+func (f *functionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	svc := f.getService()
+	deployment := f.getDeployment()
+	podmonitor := f.getPodMonitor()
+	cm := f.getConfigMap()
+	pdb := f.getPodDisruptionBudget()
+	newNodes, err := makeRNodes(&svc, &deployment, &podmonitor, &cm, &pdb)
+	items = append(items, newNodes...)
+	return items, err
 }
