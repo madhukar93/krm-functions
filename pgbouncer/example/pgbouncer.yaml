@@ -1,4 +1,4 @@
-apiVersion: LummoKRM
+apiVersion: LummoKRM/v1
 kind: pgbouncer
 metadata:
   name: akpgbouncer
