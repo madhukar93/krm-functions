@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -301,32 +300,27 @@ func (conf functionConfig) getPodDisruptionBudget() policyv1.PodDisruptionBudget
 	return podDisruptionBudget
 }
 
-func makeRNodes(objects ...metav1.Object) ([]*kyaml.RNode, framework.Results) {
+func makeRNodes(objects ...metav1.Object) ([]*kyaml.RNode, error) {
 	var out []*kyaml.RNode
-	var results framework.Results
 	for _, o := range objects {
 		r, err := fnutils.MakeRNode(o)
 		if err != nil {
-			results = append(results, &framework.Result{})
+			return nil, err
 		} else {
 			out = append(out, r)
 		}
 	}
 
-	if len(results) > 0 {
-		return nil, results
-	}
-
 	return out, nil
 }
 
-func (f functionConfig) filter(items []*kyaml.RNode) ([]*kyaml.RNode, framework.Results) {
+func (f functionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	svc := f.getService()
 	deployment := f.getDeployment()
 	podmonitor := f.getPodMonitor()
 	cm := f.getConfigMap()
 	pdb := f.getPodDisruptionBudget()
-	newNodes, results := makeRNodes(&svc, &deployment, &podmonitor, &cm, &pdb)
+	newNodes, err := makeRNodes(&svc, &deployment, &podmonitor, &cm, &pdb)
 	items = append(items, newNodes...)
-	return items, results
+	return items, err
 }

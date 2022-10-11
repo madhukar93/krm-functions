@@ -31,7 +31,7 @@ func main() {
 
 // TODO: use generics and put this in fnutils/ find a framework native way to do this
 // Process filters the input resource list using the function config
-func Process(resourceList *framework.ResourceList) error {
+func Process(resourceList *framework.ResourceList) (err error) {
 	if resourceList.FunctionConfig == nil {
 		return fmt.Errorf("function config not found in resource list")
 	}
@@ -40,10 +40,12 @@ func Process(resourceList *framework.ResourceList) error {
 	// TODO: use openapi spec to validate function config
 	// the below does schema validation on the function config as well
 	// and runs custom validators
-	err := framework.LoadFunctionConfig(resourceList.FunctionConfig, fnConfig)
+	err = framework.LoadFunctionConfig(resourceList.FunctionConfig, fnConfig)
 	if err != nil {
 		return err
 	}
-	resourceList.Items, _ = fnConfig.filter(resourceList.Items)
-	return nil
+	items, err := fnConfig.Filter(resourceList.Items)
+	resourceList.Items = items
+	// resourceList.Results = fnConfig.Validate()
+	return err
 }
