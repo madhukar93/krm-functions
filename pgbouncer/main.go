@@ -7,10 +7,16 @@ import (
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework/command"
+	"sigs.k8s.io/kustomize/kyaml/kio"
 )
 
 func cmd() *cobra.Command {
-	cmd := command.Build(framework.ResourceListProcessorFunc(Process), command.StandaloneEnabled, false)
+	config := functionConfig{}
+	p := framework.SimpleProcessor{
+		Filter: kio.FilterFunc(config.Filter),
+		Config: &config,
+	}
+	cmd := command.Build(p, command.StandaloneEnabled, false)
 	cmd.Short = "generate pgbouncer resources for function config"
 	cmd.Long = `
 	This function generates pgbouncer resources for function config -
@@ -23,29 +29,9 @@ func cmd() *cobra.Command {
 }
 
 func main() {
+
 	if err := cmd().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-}
-
-// TODO: use generics and put this in fnutils/ find a framework native way to do this
-// Process filters the input resource list using the function config
-func Process(resourceList *framework.ResourceList) (err error) {
-	if resourceList.FunctionConfig == nil {
-		return fmt.Errorf("function config not found in resource list")
-	}
-	fnConfig := &functionConfig{}
-
-	// TODO: use openapi spec to validate function config
-	// the below does schema validation on the function config as well
-	// and runs custom validators
-	err = framework.LoadFunctionConfig(resourceList.FunctionConfig, fnConfig)
-	if err != nil {
-		return err
-	}
-	items, err := fnConfig.Filter(resourceList.Items)
-	resourceList.Items = items
-	// resourceList.Results = fnConfig.Validate()
-	return err
 }
