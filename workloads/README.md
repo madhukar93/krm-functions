@@ -4,6 +4,10 @@ KRM functions for running jobs, crons and rollout objects.
 
 ```yaml
 ---
+kind: LummoContainer
+spec:
+  # container spec
+---
 # fields that match as is will be passed as is
 # special function fields will
 kind: LummoDeployment
