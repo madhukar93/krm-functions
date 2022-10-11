@@ -15,6 +15,15 @@ import (
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
+const (
+	pgbouncerImage          = "gcr.io/beecash-prod/pgbouncer:bitnami-1.17.0-debian-11-r7"
+	prometheusExporterImage = "spreaker/prometheus-pgbouncer-exporter"
+	cpuLimit                = "500m"
+	cpuRequest              = "10m"
+	memoryLimit             = "500Mi"
+	memoryRequest           = "50Mi"
+)
+
 type functionConfig struct {
 	TypeMeta   metav1.TypeMeta
 	ObjectMeta metav1.ObjectMeta
@@ -22,30 +31,30 @@ type functionConfig struct {
 }
 
 type spec struct {
-	PartOf     string            `yaml:"part-of"`
-	Product    string            `yaml:"product"`
-	Connection connection        `yaml:"connection,omitempty"`
-	Config     map[string]string `yaml:"config,omitempty"`
+	PartOf     string            `json:"part-of"`
+	App        string            `json:"app"`
+	Connection connection        `json:"connection,omitempty"`
+	Config     map[string]string `json:"config,omitempty"`
 }
 
 type connection struct {
-	Host              string `yaml:"host"`
-	Port              string `yaml:"port"`
-	Database          string `yaml:"database"`
-	Username          string `yaml:"username"`
-	Password          string `yaml:"password"`
-	CredentialsSecret string `yaml:"credentialsSecret"`
+	Host              string `json:"host"`
+	Port              string `json:"port"`
+	Database          string `json:"database"`
+	Username          string `json:"username"`
+	Password          string `json:"password"`
+	CredentialsSecret string `json:"credentialsSecret"`
 }
 
 func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
 	Containers := []corev1.Container{
 		{
-			Image: "gcr.io/beecash-prod/pgbouncer:bitnami-1.17.0-debian-11-r7",
+			Image: pgbouncerImage,
 			EnvFrom: []corev1.EnvFromSource{
 				{
 					ConfigMapRef: &corev1.ConfigMapEnvSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: conf.Spec.PartOf + "pgbouncer",
+							Name: getName(conf.Spec),
 						},
 					},
 				},
@@ -59,40 +68,12 @@ func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
 			},
 			Env: []corev1.EnvVar{
 				{
-					Name: "DD_AGENT_HOST",
-					ValueFrom: &corev1.EnvVarSource{
-						FieldRef: &corev1.ObjectFieldSelector{
-							FieldPath: "status.hostIP",
-						},
-					},
-				},
-				{
-					Name: "DD_VERSION",
-					ValueFrom: &corev1.EnvVarSource{
-						FieldRef: &corev1.ObjectFieldSelector{
-							FieldPath: "metadata.annotations['app.tokko.io/version']",
-						},
-					},
-				},
-				{
-					Name: "DD_ENV",
-					ValueFrom: &corev1.EnvVarSource{
-						FieldRef: &corev1.ObjectFieldSelector{
-							FieldPath: "metadata.annotations['app.tokko.io/env']",
-						},
-					},
-				},
-				{
 					Name: "SERVICE_NAME",
 					ValueFrom: &corev1.EnvVarSource{
 						FieldRef: &corev1.ObjectFieldSelector{
 							FieldPath: "metadata.labels['app']",
 						},
 					},
-				},
-				{
-					Name:  "ENABLE_APM_TRACING",
-					Value: "true",
 				},
 				{
 					Name:  "POSTGRESQL_USERNAME",
@@ -113,12 +94,12 @@ func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
 			},
 			Resources: corev1.ResourceRequirements{
 				Limits: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("1"),
-					corev1.ResourceMemory: resource.MustParse("500Mi"),
+					corev1.ResourceCPU:    resource.MustParse(cpuLimit),
+					corev1.ResourceMemory: resource.MustParse(memoryLimit),
 				},
 				Requests: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("50m"),
-					corev1.ResourceMemory: resource.MustParse("50Mi"),
+					corev1.ResourceCPU:    resource.MustParse(cpuRequest),
+					corev1.ResourceMemory: resource.MustParse(memoryRequest),
 				},
 			},
 			Name: "pgbouncer",
@@ -154,7 +135,7 @@ func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
 			},
 		},
 		{
-			Image: "spreaker/prometheus-pgbouncer-exporter",
+			Image: prometheusExporterImage,
 			Name:  "prometheus-pgbouncer-exporter",
 			Env: []corev1.EnvVar{
 
@@ -175,21 +156,17 @@ func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
 			},
 			Resources: corev1.ResourceRequirements{
 				Limits: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("500m"),
-					corev1.ResourceMemory: resource.MustParse("500Mi"),
+					corev1.ResourceCPU:    resource.MustParse(cpuLimit),
+					corev1.ResourceMemory: resource.MustParse(memoryLimit),
 				},
 				Requests: corev1.ResourceList{
-					corev1.ResourceCPU:    resource.MustParse("10m"),
-					corev1.ResourceMemory: resource.MustParse("50Mi"),
+					corev1.ResourceCPU:    resource.MustParse(cpuRequest),
+					corev1.ResourceMemory: resource.MustParse(memoryRequest),
 				},
 			},
 		},
 	}
 	return Containers
-}
-
-func (conf functionConfig) GetEnvironmentVariables() {
-
 }
 
 func (conf functionConfig) GetConfigMapData() map[string]string {
@@ -209,13 +186,17 @@ func GetTypeMeta(kind string, apiversion string) metav1.TypeMeta {
 	return typeMeta
 }
 
+func getName(conf spec) string {
+	name := conf.PartOf + "-" + "pgbouncer"
+	return name
+}
+
 func (conf functionConfig) GetObjectMeta() metav1.ObjectMeta {
 	objectMeta := metav1.ObjectMeta{
-		Name: conf.Spec.PartOf + "-" + "pgbouncer",
+		Name: getName(conf.Spec),
 		Labels: map[string]string{
-			"product": conf.Spec.Product,
+			"app":     getName(conf.Spec),
 			"part-of": conf.Spec.PartOf,
-			"app":     conf.Spec.PartOf + "-" + "pgbouncer",
 		},
 	}
 	return objectMeta
@@ -224,7 +205,7 @@ func (conf functionConfig) GetObjectMeta() metav1.ObjectMeta {
 func (conf functionConfig) GetMetaLabelSelector() *metav1.LabelSelector {
 	metaLabelSelector := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			"app": conf.Spec.PartOf + "-" + "pgbouncer",
+			"app": getName(conf.Spec),
 		},
 	}
 	return metaLabelSelector
@@ -276,7 +257,7 @@ func makeDeployment(conf functionConfig) appsv1.Deployment {
 												Key:      "app",
 												Operator: metav1.LabelSelectorOpIn,
 												Values: []string{
-													conf.Spec.PartOf + "-" + "pgbouncer",
+													getName(conf.Spec),
 												},
 											},
 										},
