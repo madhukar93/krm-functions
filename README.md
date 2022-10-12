@@ -116,11 +116,31 @@ vault infra/postgres/tokko-api-postgres/creds
 ## Roadmap
 
 - [x] networking resources
-- [ ] workloads - WIP
-- [ ] autoscaling - part of workloads? yes
-- [ ] monitoring - part of workloads? - yes
-- [ ] canary - part of workloads
-- [ ] pgbouncer - WIP
+- [x] workloads
+- [ ] autoscaling
+- [ ] monitoring wip
+- [ ] canary wip
+- [x] pgbouncer
+- [ ] environments
+- [ ] container template
+- [ ] argocd integration
+- [ ] reloader
+
+### supporting multiple environment
+
+For now we will just use kustomize overlays to support multiple environments. The functions will live in the base and the overlays will just contain the environment specific config.
+
+### container template
+
+The same container is used in multiple workloads. We can use a container template to define it once and reuse it in multiple workloads. LummoContainer can extend other LummoContainers for workload specific config.
+
+eg. command for different jobs will be different but the image and configmaps, secrets will be the same.
+
+probes will be very specific to the workload, so we will likely need to define them in the base container.
+
+### argocd integration
+
+Argocd has to run KRM functions. We can run KRM functions as libraries or containers. The containerized approach will require dind. We can use the kustomize plugin approach to run the functions as libraries.
 
 ## FAQ
 

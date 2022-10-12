@@ -6,7 +6,17 @@ KRM functions for running jobs, crons and rollout objects.
 ---
 kind: LummoContainer
 spec:
-  # container spec
+  # everything in corev1.Container
+  base: <name of some LummoContainer>
+  grpc:
+    port: 5000
+  http:
+    port: 8000
+  configs:
+    - foobar-api
+  secrets:
+  - foobar-api
+
 ---
 # fields that match as is will be passed as is
 # special function fields will
@@ -15,22 +25,12 @@ spec:
   part-of: foobar
   app: foobar-api
   containers: # want to make it as close to corev1.Container
-    name: foobar-api
-  # atleast one container with name == spec.app should be there
-  # this is the 'main' container, while others are sidecar
-    image: foobar
-    command: ["python", "server.py"]
-    # port: 80 nah, do the same stuff
-  # all env vars are imported as is using envFrom
-    grpc:
-      port: 5000
-    http:
-      port: 8000
-    configs:
-      - foobar-api
-    secrets:
-    - foobar-api
-    # same as k8s containers
+    - name: foobar-api
+  #   atleast one container with name == spec.app should be there
+  #   this is the 'main' container, while others are sidecar
+      image: foobar
+      command: ["python", "server.py"]
+      # same as k8s containers
     strategy: {} # TODO Lift from Rollout kind?
     scaling: {} # TODO: build KEDA resource
 ---
@@ -52,10 +52,9 @@ spec:
   part-of: foobar
   name: daily-foo-job
   container:
-    command: ["python", "job.py"]
-    image: test-server-job
-    configs:
-    - foobar-api
-    secrets:
-    - foobar-api
+    - foobar # use LummoContainer as is
+    - base: foobar # overrides LummoContainer used as base
+      command: ["python", "batch.py"]
+    - name: whatever
+      image: blah:latest
 ```
