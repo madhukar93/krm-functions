@@ -24,7 +24,7 @@ type functionConfig struct {
 type spec struct {
 	PartOf        string       `json:"part-of"`
 	App           string       `json:"app"`
-	MainContainer string       `json:"main-container"`
+	MainContainer string       `json:"main-container,omitempty"`
 	Containers    []container  `json:"containers,omitempty"`
 	Scaling       *scalingSpec `json:"scaling,omitempty"`
 }
@@ -319,9 +319,13 @@ func makeDeployment(conf functionConfig) appsv1.Deployment {
 }
 
 func (c *functionConfig) addDeploymentAnnotations(d *appsv1.Deployment) error {
-	annotations := map[string]string{
-		"app.kubernetes.io/main-container": c.Spec.MainContainer,
+	//Adding MainContainer Annotations
+	annotations := map[string]string{}
+	mainContainer := c.Spec.MainContainer
+	if mainContainer == "" {
+		mainContainer = c.Spec.Containers[0].Name
 	}
+	annotations["app.kubernetes.io/main-container"] = mainContainer
 	d.ObjectMeta.SetAnnotations(annotations)
 	d.Spec.Template.ObjectMeta.SetAnnotations(annotations)
 	return nil

@@ -5,6 +5,7 @@ metadata:
 spec:
   part-of: foobar
   app: foobar-api
+  main-container: foobar-sidecar
   containers:
     - name: foobar-api
       image: foobar
@@ -18,3 +19,17 @@ spec:
         - foobar-api-payment-api-creds
       configs:
         - foobar-api-config
+    - name: foobar-sidecar
+      image: netools
+      main: true
+      command: ["python", "server.py"]
+      grpc:
+        port: 3000
+      http:
+        port: 2000
+      secrets:
+        - foobar-sidecar-database-secrets
+        - foobar-sidecar-payment-api-creds
+      configs:
+        - foobar-sidecar-config
+
