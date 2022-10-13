@@ -300,27 +300,16 @@ func (conf functionConfig) getPodDisruptionBudget() policyv1.PodDisruptionBudget
 	return podDisruptionBudget
 }
 
-func makeRNodes(objects ...metav1.Object) ([]*kyaml.RNode, error) {
-	var out []*kyaml.RNode
-	for _, o := range objects {
-		r, err := fnutils.MakeRNode(o)
-		if err != nil {
-			return nil, err
-		} else {
-			out = append(out, r)
-		}
-	}
 
-	return out, nil
-}
-
+// KRMFunctionConfig.Filter is called from kio.Filter, which handles Results/errors appropriately
+// errors break the pipeline, results are appended to the resource lists' Results
 func (f *functionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	svc := f.getService()
 	deployment := f.getDeployment()
 	podmonitor := f.getPodMonitor()
 	cm := f.getConfigMap()
 	pdb := f.getPodDisruptionBudget()
-	newNodes, err := makeRNodes(&svc, &deployment, &podmonitor, &cm, &pdb)
+	newNodes, err := fnutils.MakeRNodes(&svc, &deployment, &podmonitor, &cm, &pdb)
 	items = append(items, newNodes...)
 	return items, err
 }

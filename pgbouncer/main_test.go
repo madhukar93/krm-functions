@@ -21,7 +21,7 @@ func Test_command(t *testing.T) {
 	if err := cmd.Execute(); err != nil {
 		t.Errorf("function failed: %v", err)
 	}
-
+	t.Log(outbuf.String())
 	if diff, err := utils.YamlDiff(outbuf.Bytes(), expected); err != nil {
 		t.Errorf("failed to diff: %v", err)
 	} else if diff.String() != "" {
