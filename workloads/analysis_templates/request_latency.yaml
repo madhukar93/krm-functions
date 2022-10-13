@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: analysis-datadog-request-latency
+spec:
+  args:
+  - name: service-name
+  - name: env
+  - name: version
+  - name: p95latency
+  - name: operation
+  metrics:
+  - failureLimit: 3
+    interval: 3m
+    name: request-latency
+    provider:
+      datadog:
+        interval: 5m
+        query: |
+          p95:trace.{{args.operation}}{service:{{args.service-name}},env:{{args.env}}}
+    successCondition: default(result,0) <= {{args.p95latency}}
