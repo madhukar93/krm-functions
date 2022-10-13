@@ -1,0 +1,20 @@
+apiVersion: lummoKRM/v1
+kind: LummoJob
+metadata:
+  name: test-app
+  namespace: test
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image:  localhost:5000/func-workloads:v1
+spec:
+  part-of: foobar
+  app: foobar-api
+  containers:
+    - name: foobar-api
+      image: foobar
+      command: ["python", "server.py"]
+      secrets:
+        - foobar-api-database-secrets
+      configs:
+        - foobar-api-config
