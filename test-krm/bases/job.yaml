@@ -6,7 +6,7 @@ metadata:
   annotations:
     config.kubernetes.io/function: |
       container:
-        image:  gcr.io/beecash-staging/argocd:dind-v1alpha4
+        image: akshayalummo/krm-argocd:workloads
 spec:
   part-of: foobar
   app: foobar-api
