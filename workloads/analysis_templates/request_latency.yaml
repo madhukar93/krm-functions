@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
 metadata:
-  name: analysis-datadog-request-latency
+  name: analysis-datadog-request-p95-latency
 spec:
   args:
   - name: service-name
