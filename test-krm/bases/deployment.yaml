@@ -1,0 +1,14 @@
+apiVersion: LummoKRM
+kind: LummoDeployment
+metadata:
+  name: nginx-app
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: localhost:5000/func-workloads:v1
+spec:
+  part-of: nginx
+  app: nginx-app
+  containers:
+    - name: nginx
+      image: nginx
