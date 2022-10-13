@@ -19,7 +19,12 @@ spec:
       configs:
         - foobar-api-config
   strategy:
-    env: prod # prod/pre-prod
-    metrics: error-rate
-    request-type: graphql
-    threshold: "300"
+    # TODO: work on defining the stages
+    # env: prod # prod/pre-prod
+    # metrics: error-rate
+    # request-type: graphql
+    # threshold: "300"
+    # TODO: commit templates to workloads/analysis_templates
+    - operation: graphql.execute
+      errorRPM: "0.1"
+      p95latency: "500ms"
