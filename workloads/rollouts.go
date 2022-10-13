@@ -20,12 +20,11 @@ func IntPtr(x int32) *int32 {
 	return &x
 }
 
-func (c *functionConfig) addRolloutContainers(r *rolloutv1alpha1.Rollout) error {
+func (c *functionConfig) addRolloutContainers(r *rolloutv1alpha1.Rollout) {
 	r.Spec.Template.Spec.Containers = append(r.Spec.Template.Spec.Containers, c.Spec.GetContainers()...)
-	return nil
 }
 
-func (c *functionConfig) addRolloutLabels(r *rolloutv1alpha1.Rollout) error {
+func (c *functionConfig) addRolloutLabels(r *rolloutv1alpha1.Rollout) {
 	labels := map[string]string{
 		"part-of": c.Spec.PartOf,
 		"app":     c.Spec.App,
@@ -35,7 +34,6 @@ func (c *functionConfig) addRolloutLabels(r *rolloutv1alpha1.Rollout) error {
 		r.Spec.Selector.MatchLabels[k] = v
 		r.Spec.Template.Labels[k] = v
 	}
-	return nil
 }
 
 func (s *strategy) getAnalysisTempateName() string {
@@ -43,7 +41,7 @@ func (s *strategy) getAnalysisTempateName() string {
 	return analysisTemplateName
 }
 
-func (s *strategy) setCanarySteps(rollout *rolloutv1alpha1.Rollout) error {
+func (s *strategy) setCanarySteps(rollout *rolloutv1alpha1.Rollout) {
 	if s.AnalysisEnv == "prod" {
 		rollout.Spec.Strategy.Canary.Steps = []rolloutv1alpha1.CanaryStep{
 			{
@@ -73,11 +71,9 @@ func (s *strategy) setCanarySteps(rollout *rolloutv1alpha1.Rollout) error {
 			},
 		}
 	}
-
-	return nil
 }
 
-func (s *strategy) addStrategy(r *rolloutv1alpha1.Rollout) error {
+func (s *strategy) addStrategy(r *rolloutv1alpha1.Rollout) {
 
 	r.Spec.Strategy = rolloutv1alpha1.RolloutStrategy{
 		Canary: &rolloutv1alpha1.CanaryStrategy{
@@ -123,7 +119,6 @@ func (s *strategy) addStrategy(r *rolloutv1alpha1.Rollout) error {
 			},
 		},
 	}
-	return nil
 }
 
 func NewRollout() *rolloutv1alpha1.Rollout {
