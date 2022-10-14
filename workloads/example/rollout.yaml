@@ -1,0 +1,43 @@
+apiVersion: lummoKRM/v1
+kind: LummoRollout
+metadata:
+  name: test-app
+  namespace: test
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: gcr.io/beecash-prod/infra/krm-functions/workloads:latest
+spec:
+  part-of: foobar
+  app: foobar-api
+  env: prod
+  containers:
+    - name: foobar-api
+      image: foobar
+      command: ["python", "server.py"]
+      secrets:
+        - foobar-api-database-secrets
+      configs:
+        - foobar-api-config
+  strategy:
+    metrics:
+      datadog:
+        operation: graphql.execute
+        errorRPM: "0.1"
+        p95latency: "500ms"
+
+---
+  # strategy:
+  #   # name: 10_percent_per_minute
+  #   # stepWeight: 10
+  #   # stepDuration: 5m
+  #   metrics:
+  #     datadog:
+  #       # TODO: figure out stages
+  #       # - metrics: error-rate-percent
+  #       #   request-type: graphql # pubsub, express
+  #       #   threshold: "300"
+  #       # TODO: commit templates to workloads/analysis_templates
+  #       - operation: graphql.execute
+  #         errorRPM: "0.1"
+  #         p95latency: "500ms"
