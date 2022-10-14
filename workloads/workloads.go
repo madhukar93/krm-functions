@@ -23,6 +23,7 @@ type functionConfig struct {
 type spec struct {
 	PartOf     string       `json:"part-of"`
 	App        string       `json:"app"`
+	Env        string       `json:"env,omitempty"`
 	Containers []container  `json:"containers,omitempty"`
 	Scaling    *scalingSpec `json:"scaling,omitempty"`
 	Strategy   *strategy    `json:"strategy,omitempty"`

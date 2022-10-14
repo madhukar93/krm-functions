@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	rolloutv1alpha1 "github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -10,10 +8,17 @@ import (
 )
 
 type strategy struct {
-	AnalysisEnv     string `json:"env"`
-	AnalysisMetrics string `json:"metrics"`
-	RequestType     string `json:"request-type"`
-	Threshold       string `json:"threshold"`
+	AnalysisMetrics metrics `json:"metrics"`
+}
+
+type metrics struct {
+	Datadog datadog `json:"datadog"`
+}
+
+type datadog struct {
+	Operation  string  `json:"operation"`
+	ErrorRPM   *string `json:"errorRPM,omitempty"`
+	P95latency *string `json:"p95latency,omitempty"`
 }
 
 func IntPtr(x int32) *int32 {
@@ -36,13 +41,8 @@ func (c *functionConfig) addRolloutLabels(r *rolloutv1alpha1.Rollout) {
 	}
 }
 
-func (s *strategy) getAnalysisTempateName() string {
-	var analysisTemplateName = fmt.Sprintf("analysis-datadog-%v-%v", s.RequestType, s.AnalysisMetrics)
-	return analysisTemplateName
-}
-
-func (s *strategy) setCanarySteps(rollout *rolloutv1alpha1.Rollout) {
-	if s.AnalysisEnv == "prod" {
+func (s *strategy) setCanarySteps(rollout *rolloutv1alpha1.Rollout, env string) {
+	if env == "prod" {
 		rollout.Spec.Strategy.Canary.Steps = []rolloutv1alpha1.CanaryStep{
 			{
 				SetWeight: IntPtr(30),
@@ -64,12 +64,53 @@ func (s *strategy) setCanarySteps(rollout *rolloutv1alpha1.Rollout) {
 				SetWeight: IntPtr(100),
 			},
 		}
-	} else if s.AnalysisEnv == "pre-prod" {
+	} else {
 		rollout.Spec.Strategy.Canary.Steps = []rolloutv1alpha1.CanaryStep{
 			{
 				SetWeight: IntPtr(100),
 			},
 		}
+	}
+}
+
+func getAnalysisTemplate(template string) rolloutv1alpha1.RolloutAnalysisTemplate {
+	rolloutTemplate := rolloutv1alpha1.RolloutAnalysisTemplate{
+		TemplateName: template,
+	}
+	return rolloutTemplate
+}
+
+func (s *strategy) addAnalysisTemplates(r *rolloutv1alpha1.Rollout) {
+	var templates_list []string
+	if s.AnalysisMetrics.Datadog.ErrorRPM != nil {
+		templates_list = append(templates_list, "analysis-datadog-request-errors")
+	}
+	if s.AnalysisMetrics.Datadog.P95latency != nil {
+		templates_list = append(templates_list, "analysis-datadog-request-p95-latency")
+	}
+
+	for _, template := range templates_list {
+		r.Spec.Strategy.Canary.Analysis.RolloutAnalysis.Templates = append(r.Spec.Strategy.Canary.Analysis.RolloutAnalysis.Templates, getAnalysisTemplate(template))
+	}
+}
+
+func getTemplateArg(argName string, argValue string) rolloutv1alpha1.AnalysisRunArgument {
+	arg := rolloutv1alpha1.AnalysisRunArgument{
+		Name:  argName,
+		Value: argValue,
+	}
+	return arg
+}
+
+func (s *strategy) addTemplateArgs(r *rolloutv1alpha1.Rollout) {
+
+	if s.AnalysisMetrics.Datadog.P95latency != nil {
+		r.Spec.Strategy.Canary.Analysis.RolloutAnalysis.Args = append(r.Spec.Strategy.Canary.Analysis.RolloutAnalysis.Args, getTemplateArg("p95latency", *s.AnalysisMetrics.Datadog.P95latency))
+	}
+
+	if s.AnalysisMetrics.Datadog.ErrorRPM != nil {
+		r.Spec.Strategy.Canary.Analysis.RolloutAnalysis.Args = append(r.Spec.Strategy.Canary.Analysis.RolloutAnalysis.Args, getTemplateArg("errorRPM", *s.AnalysisMetrics.Datadog.ErrorRPM))
+
 	}
 }
 
@@ -79,11 +120,6 @@ func (s *strategy) addStrategy(r *rolloutv1alpha1.Rollout) {
 		Canary: &rolloutv1alpha1.CanaryStrategy{
 			Analysis: &rolloutv1alpha1.RolloutAnalysisBackground{
 				RolloutAnalysis: rolloutv1alpha1.RolloutAnalysis{
-					Templates: []rolloutv1alpha1.RolloutAnalysisTemplate{
-						{
-							TemplateName: s.getAnalysisTempateName(),
-						},
-					},
 					Args: []rolloutv1alpha1.AnalysisRunArgument{
 						{
 							Name: "service-name",
@@ -110,8 +146,8 @@ func (s *strategy) addStrategy(r *rolloutv1alpha1.Rollout) {
 							},
 						},
 						{
-							Name:  "threshold",
-							Value: s.Threshold,
+							Name:  "operation",
+							Value: s.AnalysisMetrics.Datadog.Operation,
 						},
 					},
 				},
@@ -157,6 +193,8 @@ func makeRollout(conf functionConfig) rolloutv1alpha1.Rollout {
 	conf.addRolloutContainers(rollout)
 	conf.addRolloutLabels(rollout)
 	conf.Spec.Strategy.addStrategy(rollout)
-	conf.Spec.Strategy.setCanarySteps(rollout)
+	conf.Spec.Strategy.setCanarySteps(rollout, conf.Spec.Env)
+	conf.Spec.Strategy.addAnalysisTemplates(rollout)
+	conf.Spec.Strategy.addTemplateArgs(rollout)
 	return *rollout
 }

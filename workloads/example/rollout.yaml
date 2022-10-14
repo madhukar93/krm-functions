@@ -10,6 +10,7 @@ metadata:
 spec:
   part-of: foobar
   app: foobar-api
+  env: prod
   containers:
     - name: foobar-api
       image: foobar
@@ -19,12 +20,24 @@ spec:
       configs:
         - foobar-api-config
   strategy:
-    # TODO: work on defining the stages
-    # env: prod # prod/pre-prod
-    # metrics: error-rate
-    # request-type: graphql
-    # threshold: "300"
-    # TODO: commit templates to workloads/analysis_templates
-    - operation: graphql.execute
-      errorRPM: "0.1"
-      p95latency: "500ms"
+    metrics:
+      datadog:
+        operation: graphql.execute
+        errorRPM: "0.1"
+        p95latency: "500ms"
+
+---
+  # strategy:
+  #   # name: 10_percent_per_minute
+  #   # stepWeight: 10
+  #   # stepDuration: 5m
+  #   metrics:
+  #     datadog:
+  #       # TODO: figure out stages
+  #       # - metrics: error-rate-percent
+  #       #   request-type: graphql # pubsub, express
+  #       #   threshold: "300"
+  #       # TODO: commit templates to workloads/analysis_templates
+  #       - operation: graphql.execute
+  #         errorRPM: "0.1"
+  #         p95latency: "500ms"
