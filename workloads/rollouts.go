@@ -21,8 +21,8 @@ type datadog struct {
 	P95latency *string `json:"p95latency,omitempty"`
 }
 
-func IntPtr(x int32) *int32 {
-	return &x
+func PointerTo[T any](v T) *T {
+	return &v
 }
 
 func (c *functionConfig) addRolloutContainers(r *rolloutv1alpha1.Rollout) {
@@ -45,7 +45,7 @@ func (s *strategy) setCanarySteps(rollout *rolloutv1alpha1.Rollout, env string) 
 	if env == "prod" {
 		rollout.Spec.Strategy.Canary.Steps = []rolloutv1alpha1.CanaryStep{
 			{
-				SetWeight: IntPtr(30),
+				SetWeight: PointerTo[int32](30),
 			},
 			{
 				Pause: &rolloutv1alpha1.RolloutPause{
@@ -53,7 +53,7 @@ func (s *strategy) setCanarySteps(rollout *rolloutv1alpha1.Rollout, env string) 
 				},
 			},
 			{
-				SetWeight: IntPtr(60),
+				SetWeight: PointerTo[int32](60),
 			},
 			{
 				Pause: &rolloutv1alpha1.RolloutPause{
@@ -61,13 +61,13 @@ func (s *strategy) setCanarySteps(rollout *rolloutv1alpha1.Rollout, env string) 
 				},
 			},
 			{
-				SetWeight: IntPtr(100),
+				SetWeight: PointerTo[int32](100),
 			},
 		}
 	} else {
 		rollout.Spec.Strategy.Canary.Steps = []rolloutv1alpha1.CanaryStep{
 			{
-				SetWeight: IntPtr(100),
+				SetWeight: PointerTo[int32](100),
 			},
 		}
 	}
@@ -151,7 +151,7 @@ func (s *strategy) addStrategy(r *rolloutv1alpha1.Rollout) {
 						},
 					},
 				},
-				StartingStep: IntPtr(2),
+				StartingStep: PointerTo[int32](2),
 			},
 		},
 	}
