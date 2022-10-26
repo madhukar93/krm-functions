@@ -117,13 +117,13 @@ vault infra/postgres/tokko-api-postgres/creds
 
 - [x] networking resources
 - [x] workloads
-- [ ] autoscaling
-- [ ] monitoring wip
-- [ ] canary wip
+- [x] autoscaling
+- [x] monitoring
+- [x] canary
 - [x] pgbouncer
 - [ ] environments
 - [ ] container template
-- [ ] argocd integration
+- [x] argocd integration
 - [ ] reloader
 
 ### supporting multiple environment
