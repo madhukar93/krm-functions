@@ -1,6 +1,12 @@
 package fnutils
 
 import (
+	"fmt"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	"sigs.k8s.io/yaml"
 )
@@ -16,4 +22,43 @@ func MakeRNode(in any) (*kyaml.RNode, error) {
 			return rnode, nil
 		}
 	}
+}
+
+// MakeRnodes converts k8s API objects into RNodes for KRM functions
+func MakeRNodes(objects ...metav1.Object) ([]*kyaml.RNode, error) {
+	var res framework.Results
+	var out []*kyaml.RNode
+
+	for _, o := range objects {
+		result := &framework.Result{}
+		result.ResourceRef = &kyaml.ResourceIdentifier{
+			NameMeta: kyaml.NameMeta{
+				Name:      o.GetName(),
+				Namespace: o.GetNamespace(),
+			},
+		}
+		u := &unstructured.Unstructured{}
+		if uc, err := runtime.DefaultUnstructuredConverter.ToUnstructured(o); err != nil {
+			result.Severity = framework.Error
+			result.Message = fmt.Sprintf("failed to convert to unstructured: %v", err)
+		} else {
+			// only able to get TypeMeta from unstructured
+			u.SetUnstructuredContent(uc)
+			result.ResourceRef.TypeMeta = kyaml.TypeMeta{
+				APIVersion: u.GetAPIVersion(),
+				Kind:      u.GetKind(),
+			}
+
+			if rNode, err := kyaml.FromMap(uc); err != nil {
+				result.Severity = framework.Error
+				result.Message = fmt.Sprintf("failed to convert to RNode: %v", err)
+			} else {
+				out = append(out, rNode)
+				result.Message = "successully converted to RNode"
+				result.Severity = framework.Info
+			}
+		}
+
+	}
+	return out, res
 }

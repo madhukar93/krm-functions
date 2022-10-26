@@ -1,9 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
-
 	"github.com/bukukasio/krm-functions/pkg/fnutils"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -169,15 +166,6 @@ func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
 	return Containers
 }
 
-func (conf functionConfig) GetConfigMapData() map[string]string {
-	configMap := map[string]string{}
-
-	for key, val := range conf.Spec.Config {
-		configMap[key] = val
-	}
-	return configMap
-}
-
 func GetTypeMeta(kind string, apiversion string) metav1.TypeMeta {
 	typeMeta := metav1.TypeMeta{
 		Kind:       kind,
@@ -211,7 +199,7 @@ func (conf functionConfig) GetMetaLabelSelector() *metav1.LabelSelector {
 	return metaLabelSelector
 }
 
-func makeService(conf functionConfig) corev1.Service {
+func (conf functionConfig) getService() corev1.Service {
 	service := corev1.Service{
 		TypeMeta:   GetTypeMeta("Service", "v1"),
 		ObjectMeta: conf.GetObjectMeta(),
@@ -230,7 +218,7 @@ func makeService(conf functionConfig) corev1.Service {
 	return service
 }
 
-func makeDeployment(conf functionConfig) appsv1.Deployment {
+func (conf functionConfig) getDeployment() appsv1.Deployment {
 	deployment := appsv1.Deployment{
 		TypeMeta:   GetTypeMeta("Deployment", "apps/v1"),
 		ObjectMeta: conf.GetObjectMeta(),
@@ -273,7 +261,7 @@ func makeDeployment(conf functionConfig) appsv1.Deployment {
 	return deployment
 }
 
-func makePodMonitor(conf functionConfig) monitoringv1.PodMonitor {
+func (conf functionConfig) getPodMonitor() monitoringv1.PodMonitor {
 	podMonitor := monitoringv1.PodMonitor{
 		TypeMeta:   GetTypeMeta("PodMonitor", "monitoring.coreos.com/v1"),
 		ObjectMeta: conf.GetObjectMeta(),
@@ -291,16 +279,16 @@ func makePodMonitor(conf functionConfig) monitoringv1.PodMonitor {
 	return podMonitor
 }
 
-func makeConfigMap(conf functionConfig) corev1.ConfigMap {
+func (conf functionConfig) getConfigMap() corev1.ConfigMap {
 	configMap := corev1.ConfigMap{
 		TypeMeta:   GetTypeMeta("ConfigMap", "v1"),
 		ObjectMeta: conf.GetObjectMeta(),
-		Data:       conf.GetConfigMapData(),
+		Data:       conf.Spec.Config,
 	}
 	return configMap
 }
 
-func makePodDisruptionBudget(conf functionConfig) policyv1.PodDisruptionBudget {
+func (conf functionConfig) getPodDisruptionBudget() policyv1.PodDisruptionBudget {
 	podDisruptionBudget := policyv1.PodDisruptionBudget{
 		TypeMeta:   GetTypeMeta("PodDisruptionBudget", "policy/v1beta1"),
 		ObjectMeta: conf.GetObjectMeta(),
@@ -312,31 +300,16 @@ func makePodDisruptionBudget(conf functionConfig) policyv1.PodDisruptionBudget {
 	return podDisruptionBudget
 }
 
-func appendRnodes(in []*kyaml.RNode, objects ...any) ([]*kyaml.RNode, error) {
-	out := []*kyaml.RNode{}
-	var errors []error
-	for _, o := range objects {
-		r, err := fnutils.MakeRNode(o)
-		if err != nil {
-			errors = append(errors, err)
-		}
-		out = append(out, r)
-	}
-	if len(errors) > 0 {
-		var combinedErrors bytes.Buffer
-		for _, e := range errors {
-			combinedErrors.WriteString(fmt.Sprintln("%s", e.Error()))
-		}
-		return nil, fmt.Errorf(combinedErrors.String())
-	}
-	return out, nil
-}
 
-func (f functionConfig) filter(in []*kyaml.RNode) ([]*kyaml.RNode, error) {
-	svc := makeService(f)
-	deployment := makeDeployment(f)
-	podmonitor := makePodMonitor(f)
-	cm := makeConfigMap(f)
-	pdb := makePodDisruptionBudget(f)
-	return appendRnodes(in, svc, deployment, podmonitor, cm, pdb)
+// KRMFunctionConfig.Filter is called from kio.Filter, which handles Results/errors appropriately
+// errors break the pipeline, results are appended to the resource lists' Results
+func (f *functionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	svc := f.getService()
+	deployment := f.getDeployment()
+	podmonitor := f.getPodMonitor()
+	cm := f.getConfigMap()
+	pdb := f.getPodDisruptionBudget()
+	newNodes, err := fnutils.MakeRNodes(&svc, &deployment, &podmonitor, &cm, &pdb)
+	items = append(items, newNodes...)
+	return items, err
 }

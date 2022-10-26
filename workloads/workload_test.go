@@ -8,7 +8,7 @@ import (
 
 var deploymentInput = `apiVersion: config.kubernetes.io/v1
 kind: ResourceList
-items: 
+items:
 - apiVersion: LummoKRM
   kind: LummoDeployment
   metadata:
@@ -27,7 +27,7 @@ items:
       configs:
       - foobar-api-config
     scaling:
-      enabled: true 
+      enabled: true
       minreplica: 1
       maxreplica: 10
       cpu:
@@ -133,7 +133,7 @@ items:
 
 var jobInput = `apiVersion: config.kubernetes.io/v1
 kind: ResourceList
-items: 
+items:
 - apiVersion: lummoKRM/v1
   kind: LummoJob
   metadata:
@@ -187,7 +187,7 @@ items:
 
 var cronInput = `apiVersion: config.kubernetes.io/v1
 kind: ResourceList
-items: 
+items:
 - apiVersion: lummoKRM/v1
   kind: LummoCron
   metadata:
@@ -250,19 +250,19 @@ items:
 `
 
 func TestDeployment(t *testing.T) {
-	if fntesting.Compare(appFunc, deploymentInput, deploymentOutput) != true {
+	if fntesting.Execute(appFunc, deploymentInput, deploymentOutput) != true {
 		t.Fatal()
 	}
 }
 
 func TestJobs(t *testing.T) {
-	if fntesting.Compare(appFunc, jobInput, jobOutput) != true {
+	if fntesting.Execute(appFunc, jobInput, jobOutput) != true {
 		t.Fatal()
 	}
 }
 
 func TestCronJobs(t *testing.T) {
-	if fntesting.Compare(appFunc, cronInput, cronOutput) != true {
+	if fntesting.Execute(appFunc, cronInput, cronOutput) != true {
 		t.Fatal()
 	}
 }
