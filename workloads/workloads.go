@@ -1,21 +1,18 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/bukukasio/krm-functions/pkg/fnutils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/kustomize/kyaml/kio"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 type functionConfig struct {
-	typeMeta          metav1.TypeMeta
+	metav1.TypeMeta
 	metav1.ObjectMeta `json:"metadata"`
 	Spec              spec `json:"spec"`
 }
@@ -126,114 +123,40 @@ func (c *container) GetContainer() corev1.Container {
 	return c.Container
 }
 
-type WorkloadsFilter struct {
-	rw *kio.ByteReadWriter
-}
-
-func (w WorkloadsFilter) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
+func (fnConfig *functionConfig) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	out := []*kyaml.RNode{}
-	// TODO: use switch
-	for _, node := range nodes {
-		if node.GetKind() == "Deployment" {
-			continue
-
-		} else if node.GetKind() == "LummoDeployment" {
-			if fnConfig, err := parseFnConfig(node); err != nil {
-				return nil, err
-			} else {
-				deployment := makeDeployment(*fnConfig)
-				service := makeService(deployment)
-				if d, err := fnutils.MakeRNode(deployment); err != nil {
-					return nil, err
-				} else {
-					out = append(out, d)
-				}
-				if s, err := fnutils.MakeRNode(service); err != nil {
-					return nil, err
-				} else {
-					out = append(out, s)
-				}
-				if fnConfig.Spec.Scaling != nil {
-					scaling := fnConfig.Spec.Scaling.makeScaledObject(deployment)
-					if s, err := fnutils.MakeRNode(scaling); err != nil {
-						return nil, err
-					} else {
-						out = append(out, s)
-					}
-				}
-			}
-			continue
-		} else if node.GetKind() == "LummoCron" {
-			if fnConfig, err := parseJobFnConfig(node); err != nil {
-				return nil, err
-			} else {
-				cronjob := makeCronJob(*fnConfig)
-				if d, err := fnutils.MakeRNode(cronjob); err != nil {
-					return nil, err
-				} else {
-					out = append(out, d)
-				}
-			}
-			continue
-		} else if node.GetKind() == "LummoJob" {
-			if fnConfig, err := parseJobFnConfig(node); err != nil {
-				return nil, err
-			} else {
-				job := makeJob(*fnConfig)
-				if d, err := fnutils.MakeRNode(job); err != nil {
-					return nil, err
-				} else {
-					out = append(out, d)
-				}
-			}
-			continue
-		} else if node.GetKind() == "LummoRollout" {
-			if fnConfig, err := parseFnConfig(node); err != nil {
-				return nil, err
-			} else {
-				rollout := makeRollout(*fnConfig)
-				if d, err := fnutils.MakeRNode(rollout); err != nil {
-					return nil, err
-				} else {
-					out = append(out, d)
-				}
-			}
-			continue
+	if fnConfig.Kind == "LummoDeployment" {
+		deployment := makeDeployment(*fnConfig)
+		service := makeService(deployment)
+		if d, err := fnutils.MakeRNode(deployment); err != nil {
+			return nil, err
+		} else {
+			out = append(out, d)
 		}
-		out = append(out, node)
+		if s, err := fnutils.MakeRNode(service); err != nil {
+			return nil, err
+		} else {
+			out = append(out, s)
+		}
+		if fnConfig.Spec.Scaling != nil {
+			scaling := fnConfig.Spec.Scaling.makeScaledObject(deployment)
+			if s, err := fnutils.MakeRNode(scaling); err != nil {
+				return nil, err
+			} else {
+				out = append(out, s)
+			}
+		}
+	}
+
+	if fnConfig.Kind == "LummoRollout" {
+		rollout := makeRollout(*fnConfig)
+		if d, err := fnutils.MakeRNode(rollout); err != nil {
+			return nil, err
+		} else {
+			out = append(out, d)
+		}
 	}
 	return out, nil
-}
-
-// parseFnConfig parses the functionConfig into the functionConfig struct
-func parseFnConfig(node *kyaml.RNode) (*functionConfig, error) {
-	var config functionConfig
-	jsonBytes, err := node.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(jsonBytes, &config); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
-	}
-	return &config, nil
-}
-
-// TODO: use generic return value
-// use framework native struct for fn configs
-
-// parseFnConfig parses the JobfunctionConfig
-func parseJobFnConfig(node *kyaml.RNode) (*jobFunctionConfig, error) {
-	var config jobFunctionConfig
-	jsonBytes, err := node.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(jsonBytes, &config); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
-	}
-	return &config, nil
 }
 
 // validations

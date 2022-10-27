@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
+	"github.com/spf13/cobra"
+	"sigs.k8s.io/kustomize/kyaml/fn/framework"
+	"sigs.k8s.io/kustomize/kyaml/fn/framework/command"
 	"sigs.k8s.io/kustomize/kyaml/kio"
-	// "k8s.io/apimachinery/pkg/util/yaml"
 )
 
 /*
@@ -17,28 +18,22 @@ TODO
 - have validations
 */
 
-func appFunc() error {
-	rw := &kio.ByteReadWriter{
-		Reader:                os.Stdin,
-		Writer:                os.Stdout,
-		OmitReaderAnnotations: true,
-		KeepReaderAnnotations: true,
+func cmd() *cobra.Command {
+
+	config := functionConfig{}
+	p := framework.SimpleProcessor{
+		Filter: kio.FilterFunc(config.Filter),
+		Config: &config,
 	}
-	p := kio.Pipeline{
-		Inputs:  []kio.Reader{rw}, // read the inputs into a slice
-		Filters: []kio.Filter{WorkloadsFilter{rw: rw}},
-		Outputs: []kio.Writer{rw}, // copy the inputs to the output
-	}
-	if err := p.Execute(); err != nil {
-		log.Fatal(err)
-		return err
-	}
-	return nil
+	cmd := command.Build(p, command.StandaloneEnabled, false)
+	cmd.Short = ""
+	cmd.Long = ""
+	return cmd
 }
 
 func main() {
-	if err := appFunc(); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
+	if err := cmd().Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
