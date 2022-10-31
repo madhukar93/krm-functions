@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	networking "github.com/bukukasio/krm-functions/pkg/networking"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework/command"
 )
@@ -27,7 +28,7 @@ func Process(resourceList *framework.ResourceList) error {
 	if fnConfig == nil {
 		return errors.New("no function config specified")
 	}
-	injector, err := fnConfigFromRNode(fnConfig)
+	injector, err := networking.FnConfigFromRNode(fnConfig)
 	if err != nil {
 		return err
 	}
