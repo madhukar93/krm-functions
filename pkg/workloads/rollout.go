@@ -1,4 +1,4 @@
-package main
+package workloads
 
 import (
 	rolloutv1alpha1 "github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
@@ -25,11 +25,11 @@ func PointerTo[T any](v T) *T {
 	return &v
 }
 
-func (c *functionConfig) addRolloutContainers(r *rolloutv1alpha1.Rollout) {
+func (c *FunctionConfig) addRolloutContainers(r *rolloutv1alpha1.Rollout) {
 	r.Spec.Template.Spec.Containers = append(r.Spec.Template.Spec.Containers, c.Spec.GetContainers()...)
 }
 
-func (c *functionConfig) addRolloutLabels(r *rolloutv1alpha1.Rollout) {
+func (c *FunctionConfig) addRolloutLabels(r *rolloutv1alpha1.Rollout) {
 	labels := map[string]string{
 		"part-of": c.Spec.PartOf,
 		"app":     c.Spec.App,
@@ -187,7 +187,7 @@ func NewRollout() *rolloutv1alpha1.Rollout {
 	return &rollout
 }
 
-func makeRollout(conf functionConfig) rolloutv1alpha1.Rollout {
+func makeRollout(conf FunctionConfig) rolloutv1alpha1.Rollout {
 	rollout := NewRollout()
 	rollout.ObjectMeta.Name = conf.Spec.App
 	conf.addRolloutContainers(rollout)

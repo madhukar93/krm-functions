@@ -1,4 +1,4 @@
-package main
+package workloads
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-type functionConfig struct {
+type FunctionConfig struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta `json:"metadata"`
 	Spec              spec `json:"spec"`
@@ -123,7 +123,7 @@ func (c *container) GetContainer() corev1.Container {
 	return c.Container
 }
 
-func (fnConfig *functionConfig) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
+func (fnConfig *FunctionConfig) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	out := []*kyaml.RNode{}
 	if fnConfig.Kind == "LummoDeployment" {
 		deployment := makeDeployment(*fnConfig)
@@ -165,7 +165,7 @@ func (fnConfig *functionConfig) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, er
 // deployment builds a appsv1.Deployment from the functionConfig
 // TODO: validate
 
-func (c *functionConfig) addDeploymentLabels(d *appsv1.Deployment) error {
+func (c *FunctionConfig) addDeploymentLabels(d *appsv1.Deployment) error {
 	labels := map[string]string{
 		"part-of": c.Spec.PartOf,
 		"app":     c.Spec.App,
@@ -178,7 +178,7 @@ func (c *functionConfig) addDeploymentLabels(d *appsv1.Deployment) error {
 	return nil
 }
 
-func (c *functionConfig) addContainers(d *appsv1.Deployment) error {
+func (c *FunctionConfig) addContainers(d *appsv1.Deployment) error {
 	d.Spec.Template.Spec.Containers = append(d.Spec.Template.Spec.Containers, c.Spec.GetContainers()...)
 	return nil
 }
@@ -221,7 +221,7 @@ func NewDeployment() *appsv1.Deployment {
 }
 
 // TODO: Return a Result type? Does the framework have a result type?
-func makeDeployment(conf functionConfig) appsv1.Deployment {
+func makeDeployment(conf FunctionConfig) appsv1.Deployment {
 	d := NewDeployment()
 	d.ObjectMeta.Name = conf.Spec.App
 	conf.addDeploymentLabels(d)

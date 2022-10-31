@@ -4,34 +4,33 @@ import (
 	"fmt"
 	"os"
 
+	pgbouncer "github.com/bukukasio/krm-functions/pkg/pgbouncer"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework/command"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 )
 
-/*
-TODO
-- preserve comments
-- create generate/transform semantics in the framework
-- try to leverage more of kyaml/fn package
-- have validations
-*/
-
 func cmd() *cobra.Command {
-
-	config := functionConfig{}
+	config := pgbouncer.FunctionConfig{}
 	p := framework.SimpleProcessor{
 		Filter: kio.FilterFunc(config.Filter),
 		Config: &config,
 	}
 	cmd := command.Build(p, command.StandaloneEnabled, false)
-	cmd.Short = ""
-	cmd.Long = ""
+	cmd.Short = "generate pgbouncer resources for function config"
+	cmd.Long = `
+	This function generates pgbouncer resources for function config -
+	deployment with pgbouncer container, and it's prometheus exporter sidecar
+	service for the deployment
+	pod disruption budget for the deployment to ensure min of 1 instance for a service is running
+	pod monitor to collect prometheus metrics
+	`
 	return cmd
 }
 
 func main() {
+
 	if err := cmd().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

@@ -1,4 +1,4 @@
-package main
+package workloads
 
 import (
 	batchv1 "k8s.io/api/batch/v1"
