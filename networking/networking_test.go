@@ -133,7 +133,7 @@ func runTests(t *testing.T, tests []test) {
 				t.FailNow()
 			}
 
-			injector := &InjectRoutes{}
+			injector := &FnConfig{}
 			inout := &kio.LocalPackageReadWriter{
 				PackagePath: baseDir,
 			}
