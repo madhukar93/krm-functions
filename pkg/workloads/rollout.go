@@ -196,5 +196,8 @@ func makeRollout(conf FunctionConfig) rolloutv1alpha1.Rollout {
 	conf.Spec.Strategy.setCanarySteps(rollout, conf.Spec.Env)
 	conf.Spec.Strategy.addAnalysisTemplates(rollout)
 	conf.Spec.Strategy.addTemplateArgs(rollout)
+	if conf.Spec.Reloader {
+		addReloaderAnnotation(&rollout.ObjectMeta)
+	}
 	return *rollout
 }

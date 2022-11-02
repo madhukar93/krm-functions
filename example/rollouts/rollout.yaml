@@ -11,6 +11,7 @@ spec:
   part-of: foobar
   app: foobar-api
   env: prod
+  reloader: true
   containers:
     - name: foobar-api
       image: foobar

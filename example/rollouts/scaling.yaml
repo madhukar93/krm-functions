@@ -9,6 +9,7 @@ metadata:
 spec:
   part-of: foobar
   app: foobar-api
+  reloader: false
   containers:
     - name: foobar-api
       image: foobar

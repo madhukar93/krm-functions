@@ -24,6 +24,7 @@ kind: LummoDeployment
 spec:
   part-of: foobar
   app: foobar-api
+  reloader: true
   containers: # want to make it as close to corev1.Container
     - name: foobar-api
   #   atleast one container with name == spec.app should be there
