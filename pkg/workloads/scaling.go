@@ -1,4 +1,4 @@
-package main
+package workloads
 
 import (
 	kedav1alpha1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"

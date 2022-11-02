@@ -1,4 +1,4 @@
-package main
+package pgbouncer
 
 import (
 	"github.com/bukukasio/krm-functions/pkg/fnutils"
@@ -21,7 +21,7 @@ const (
 	memoryRequest           = "50Mi"
 )
 
-type functionConfig struct {
+type FunctionConfig struct {
 	TypeMeta   metav1.TypeMeta
 	ObjectMeta metav1.ObjectMeta
 	Spec       spec `yaml:"spec"`
@@ -43,7 +43,7 @@ type connection struct {
 	CredentialsSecret string `json:"credentialsSecret"`
 }
 
-func (conf functionConfig) GetpgbouncerContainers() []corev1.Container {
+func (conf FunctionConfig) GetpgbouncerContainers() []corev1.Container {
 	Containers := []corev1.Container{
 		{
 			Image: pgbouncerImage,
@@ -179,7 +179,7 @@ func getName(conf spec) string {
 	return name
 }
 
-func (conf functionConfig) GetObjectMeta() metav1.ObjectMeta {
+func (conf FunctionConfig) GetObjectMeta() metav1.ObjectMeta {
 	objectMeta := metav1.ObjectMeta{
 		Name: getName(conf.Spec),
 		Labels: map[string]string{
@@ -190,7 +190,7 @@ func (conf functionConfig) GetObjectMeta() metav1.ObjectMeta {
 	return objectMeta
 }
 
-func (conf functionConfig) GetMetaLabelSelector() *metav1.LabelSelector {
+func (conf FunctionConfig) GetMetaLabelSelector() *metav1.LabelSelector {
 	metaLabelSelector := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			"app": getName(conf.Spec),
@@ -199,7 +199,7 @@ func (conf functionConfig) GetMetaLabelSelector() *metav1.LabelSelector {
 	return metaLabelSelector
 }
 
-func (conf functionConfig) getService() corev1.Service {
+func (conf FunctionConfig) getService() corev1.Service {
 	service := corev1.Service{
 		TypeMeta:   GetTypeMeta("Service", "v1"),
 		ObjectMeta: conf.GetObjectMeta(),
@@ -218,7 +218,7 @@ func (conf functionConfig) getService() corev1.Service {
 	return service
 }
 
-func (conf functionConfig) getDeployment() appsv1.Deployment {
+func (conf FunctionConfig) getDeployment() appsv1.Deployment {
 	deployment := appsv1.Deployment{
 		TypeMeta:   GetTypeMeta("Deployment", "apps/v1"),
 		ObjectMeta: conf.GetObjectMeta(),
@@ -261,7 +261,7 @@ func (conf functionConfig) getDeployment() appsv1.Deployment {
 	return deployment
 }
 
-func (conf functionConfig) getPodMonitor() monitoringv1.PodMonitor {
+func (conf FunctionConfig) getPodMonitor() monitoringv1.PodMonitor {
 	podMonitor := monitoringv1.PodMonitor{
 		TypeMeta:   GetTypeMeta("PodMonitor", "monitoring.coreos.com/v1"),
 		ObjectMeta: conf.GetObjectMeta(),
@@ -279,7 +279,7 @@ func (conf functionConfig) getPodMonitor() monitoringv1.PodMonitor {
 	return podMonitor
 }
 
-func (conf functionConfig) getConfigMap() corev1.ConfigMap {
+func (conf FunctionConfig) getConfigMap() corev1.ConfigMap {
 	configMap := corev1.ConfigMap{
 		TypeMeta:   GetTypeMeta("ConfigMap", "v1"),
 		ObjectMeta: conf.GetObjectMeta(),
@@ -288,7 +288,7 @@ func (conf functionConfig) getConfigMap() corev1.ConfigMap {
 	return configMap
 }
 
-func (conf functionConfig) getPodDisruptionBudget() policyv1.PodDisruptionBudget {
+func (conf FunctionConfig) getPodDisruptionBudget() policyv1.PodDisruptionBudget {
 	podDisruptionBudget := policyv1.PodDisruptionBudget{
 		TypeMeta:   GetTypeMeta("PodDisruptionBudget", "policy/v1beta1"),
 		ObjectMeta: conf.GetObjectMeta(),
@@ -300,10 +300,9 @@ func (conf functionConfig) getPodDisruptionBudget() policyv1.PodDisruptionBudget
 	return podDisruptionBudget
 }
 
-
 // KRMFunctionConfig.Filter is called from kio.Filter, which handles Results/errors appropriately
 // errors break the pipeline, results are appended to the resource lists' Results
-func (f *functionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	svc := f.getService()
 	deployment := f.getDeployment()
 	podmonitor := f.getPodMonitor()

@@ -1,4 +1,4 @@
-package main
+package networking
 
 import (
 	"errors"
@@ -49,7 +49,7 @@ type functionConfig struct {
 
 // change route to our own object
 // create inject routes file
-func fnConfigFromRNode(fnConfig *yaml.RNode) (*InjectRoutes, error) {
+func FnConfigFromRNode(fnConfig *yaml.RNode) (*InjectRoutes, error) {
 	if fnConfig == nil {
 		return nil, errors.New("no functionConfig specified")
 	}

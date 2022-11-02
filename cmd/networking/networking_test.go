@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	networking "github.com/bukukasio/krm-functions/pkg/networking"
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 )
@@ -133,7 +134,7 @@ func runTests(t *testing.T, tests []test) {
 				t.FailNow()
 			}
 
-			injector := &InjectRoutes{}
+			injector := &networking.InjectRoutes{}
 			inout := &kio.LocalPackageReadWriter{
 				PackagePath: baseDir,
 			}

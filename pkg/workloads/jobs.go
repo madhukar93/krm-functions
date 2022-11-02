@@ -1,13 +1,15 @@
-package main
+package workloads
 
 import (
+	"github.com/bukukasio/krm-functions/pkg/fnutils"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-type jobFunctionConfig struct {
-	typeMeta          metav1.TypeMeta
+type JobFunctionConfig struct {
+	metav1.TypeMeta
 	metav1.ObjectMeta `json:"metadata"`
 	Spec              jobSpec `json:"spec"`
 }
@@ -17,7 +19,7 @@ type jobSpec struct {
 	Schedule string `json:"schedule,omitempty"`
 }
 
-func GetJobSpec(jobConf jobFunctionConfig) batchv1.JobSpec {
+func GetJobSpec(jobConf JobFunctionConfig) batchv1.JobSpec {
 	jobSpec := batchv1.JobSpec{
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
@@ -35,7 +37,7 @@ func GetJobSpec(jobConf jobFunctionConfig) batchv1.JobSpec {
 	return jobSpec
 }
 
-func GetJobTemplate(jobConf jobFunctionConfig) batchv1.JobTemplateSpec {
+func GetJobTemplate(jobConf JobFunctionConfig) batchv1.JobTemplateSpec {
 	jobTemplateSpec := batchv1.JobTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: jobConf.Spec.App,
@@ -49,7 +51,7 @@ func GetJobTemplate(jobConf jobFunctionConfig) batchv1.JobTemplateSpec {
 	return jobTemplateSpec
 }
 
-func makeCronJob(jobConfig jobFunctionConfig) batchv1.CronJob {
+func makeCronJob(jobConfig JobFunctionConfig) batchv1.CronJob {
 	cj := batchv1.CronJob{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "CronJob",
@@ -70,7 +72,7 @@ func makeCronJob(jobConfig jobFunctionConfig) batchv1.CronJob {
 	return cj
 }
 
-func makeJob(jobConfig jobFunctionConfig) batchv1.Job {
+func makeJob(jobConfig JobFunctionConfig) batchv1.Job {
 	job := batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Job",
@@ -86,4 +88,26 @@ func makeJob(jobConfig jobFunctionConfig) batchv1.Job {
 		Spec: GetJobSpec(jobConfig),
 	}
 	return job
+}
+
+func (fnConfig *JobFunctionConfig) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	out := []*kyaml.RNode{}
+	if fnConfig.Kind == "LummoJob" {
+		job := makeJob(*fnConfig)
+		if d, err := fnutils.MakeRNode(job); err != nil {
+			return nil, err
+		} else {
+			out = append(out, d)
+		}
+	}
+
+	if fnConfig.Kind == "LummoCron" {
+		cronjob := makeCronJob(*fnConfig)
+		if d, err := fnutils.MakeRNode(cronjob); err != nil {
+			return nil, err
+		} else {
+			out = append(out, d)
+		}
+	}
+	return out, nil
 }

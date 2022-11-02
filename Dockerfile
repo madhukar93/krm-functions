@@ -3,14 +3,14 @@
 
 FROM golang:1.19 AS builder
 ENV CGO_ENABLED=0
-ARG FUNCTION_DIR
+ARG FUNCTION
 WORKDIR /go/src/
 # do the go mod stuff in a separate layer/image?
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
 COPY pkg/ pkg/
-COPY ${FUNCTION_DIR}/*.go .
+COPY cmd/${FUNCTION}/*.go .
 RUN --mount=type=cache,target=/root/.cache/go-build go build -mod readonly -v -o /usr/local/bin/config-function ./
 
 FROM alpine:3

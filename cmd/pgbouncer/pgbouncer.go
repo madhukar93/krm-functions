@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	pgbouncer "github.com/bukukasio/krm-functions/pkg/pgbouncer"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework/command"
@@ -11,7 +12,7 @@ import (
 )
 
 func cmd() *cobra.Command {
-	config := functionConfig{}
+	config := pgbouncer.FunctionConfig{}
 	p := framework.SimpleProcessor{
 		Filter: kio.FilterFunc(config.Filter),
 		Config: &config,
