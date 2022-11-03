@@ -61,7 +61,7 @@ func (spec scalingSpec) makeScaledObject(d appsv1.Deployment) kedav1alpha1.Scale
 					Type: "memory",
 					Metadata: map[string]string{
 						"type":  "Utilization",
-						"value": spec.Cpu.Target,
+						"value": spec.Memory.Target,
 					},
 				},
 				{
