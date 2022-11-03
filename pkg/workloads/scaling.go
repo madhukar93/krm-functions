@@ -23,11 +23,53 @@ type pubsubTopic struct {
 }
 
 type scalingSpec struct {
-	MinReplica  int32       `json:"minreplica"`
-	MaxReplica  int32       `json:"maxreplica"`
-	Cpu         cpu         `json:"cpu,omitempty"`
-	Memory      memory      `json:"memory,omitempty"`
-	PubsubTopic pubsubTopic `json:"pubsubTopic,omitempty"`
+	MinReplica  int32        `json:"minreplica"`
+	MaxReplica  int32        `json:"maxreplica"`
+	Cpu         *cpu         `json:"cpu,omitempty"`
+	Memory      *memory      `json:"memory,omitempty"`
+	PubsubTopic *pubsubTopic `json:"pubsubTopic,omitempty"`
+}
+
+func (spec scalingSpec) addCpuTrigger(so *kedav1alpha1.ScaledObject) {
+	cpuTrigger := []kedav1alpha1.ScaleTriggers{
+		{
+			Type: "cpu",
+			Metadata: map[string]string{
+				"type":  "Utilization",
+				"value": spec.Cpu.Target,
+			},
+		},
+	}
+	so.Spec.Triggers = append(so.Spec.Triggers, cpuTrigger...)
+}
+
+func (spec scalingSpec) addMemoryTrigger(so *kedav1alpha1.ScaledObject) {
+	memoryTrigger := []kedav1alpha1.ScaleTriggers{
+		{
+			Type: "memory",
+			Metadata: map[string]string{
+				"type":  "Utilization",
+				"value": spec.Memory.Target,
+			},
+		},
+	}
+	so.Spec.Triggers = append(so.Spec.Triggers, memoryTrigger...)
+}
+
+func (spec scalingSpec) addPubSubTrigger(so *kedav1alpha1.ScaledObject) {
+	pubsubTrigger := []kedav1alpha1.ScaleTriggers{
+		{
+			Type: "gcp-pubsub",
+			Metadata: map[string]string{
+				"subscriptionName": spec.PubsubTopic.Name,
+				"subscriptionSize": spec.PubsubTopic.Size,
+			},
+			AuthenticationRef: &kedav1alpha1.ScaledObjectAuthRef{
+				Name: kedaTriggerAuth,
+			},
+		},
+	}
+	so.Spec.Triggers = append(so.Spec.Triggers, pubsubTrigger...)
 }
 
 func (spec scalingSpec) makeScaledObject(d appsv1.Deployment) kedav1alpha1.ScaledObject {
@@ -46,38 +88,22 @@ func (spec scalingSpec) makeScaledObject(d appsv1.Deployment) kedav1alpha1.Scale
 		Spec: kedav1alpha1.ScaledObjectSpec{
 			MinReplicaCount: &spec.MinReplica,
 			MaxReplicaCount: &spec.MaxReplica,
-			Triggers: []kedav1alpha1.ScaleTriggers{
-				{
-					Type: "gcp-pubsub",
-					Metadata: map[string]string{
-						"subscriptionName": spec.PubsubTopic.Name,
-						"subscriptionSize": spec.PubsubTopic.Size,
-					},
-					AuthenticationRef: &kedav1alpha1.ScaledObjectAuthRef{
-						Name: kedaTriggerAuth,
-					},
-				},
-				{
-					Type: "memory",
-					Metadata: map[string]string{
-						"type":  "Utilization",
-						"value": spec.Memory.Target,
-					},
-				},
-				{
-					Type: "cpu",
-					Metadata: map[string]string{
-						"type":  "Utilization",
-						"value": spec.Cpu.Target,
-					},
-				},
-			},
+			Triggers:        []kedav1alpha1.ScaleTriggers{},
 			ScaleTargetRef: &kedav1alpha1.ScaleTarget{
 				APIVersion: argoApiVersion,
 				Kind:       "Rollout",
 				Name:       d.ObjectMeta.Name,
 			},
 		},
+	}
+	if spec.Cpu != nil {
+		spec.addCpuTrigger(&scaledObject)
+	}
+	if spec.Memory != nil {
+		spec.addMemoryTrigger(&scaledObject)
+	}
+	if spec.PubsubTopic != nil {
+		spec.addPubSubTrigger(&scaledObject)
 	}
 	return scaledObject
 }
