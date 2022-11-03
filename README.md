@@ -52,14 +52,12 @@ spec:
     secrets:
       - "tokko-api" # contains DB connection details also, which should match with pgbouncer
     resources: # make this required
-  ----
   monitoring: # it will just add DD envs vars
     datadog: true
     prometheus: # not needed for now
       endpoint: '/metrics'
       port: 1234 # when sidecar
   strategy: {} # as is, produce rollout
-  ----
   scaling: # always use keda
     minreplica: 1
     maxreplica: 10
@@ -68,8 +66,8 @@ spec:
     memory:
       target: 80% # (of requests)
     pubsubTopic:
-      name:
-      size:
+      name: some-queue
+      size: 10000 # TODO: allow higher level controls like latency and throughput
     # no prom stuff for now
 ```
 
