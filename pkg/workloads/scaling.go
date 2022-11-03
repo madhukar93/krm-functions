@@ -91,7 +91,7 @@ func (spec scalingSpec) makeScaledObject(d appsv1.Deployment) kedav1alpha1.Scale
 			Triggers:        []kedav1alpha1.ScaleTriggers{},
 			ScaleTargetRef: &kedav1alpha1.ScaleTarget{
 				APIVersion: argoApiVersion,
-				Kind:       "Rollout",
+				Kind:       d.Kind,
 				Name:       d.ObjectMeta.Name,
 			},
 		},
