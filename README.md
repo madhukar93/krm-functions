@@ -62,9 +62,9 @@ spec:
     minreplica: 1
     maxreplica: 10
     cpu:
-      target:
+      target: 50
     memory:
-      target: 80% # (of requests)
+      target: 80 # (of requests)
     pubsubTopic:
       name: some-queue
       size: 10000 # TODO: allow higher level controls like latency and throughput
