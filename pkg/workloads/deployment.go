@@ -140,7 +140,7 @@ func (fnConfig *FunctionConfig) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, er
 			out = append(out, s)
 		}
 		if fnConfig.Spec.Scaling != nil {
-			scaling := fnConfig.Spec.Scaling.makeScaledObject(deployment)
+			scaling := fnConfig.Spec.Scaling.makeScaledObject(deployment.TypeMeta, deployment.ObjectMeta)
 			if s, err := fnutils.MakeRNode(scaling); err != nil {
 				return nil, err
 			} else {
@@ -155,6 +155,14 @@ func (fnConfig *FunctionConfig) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, er
 			return nil, err
 		} else {
 			out = append(out, d)
+		}
+		if fnConfig.Spec.Scaling != nil {
+			scaling := fnConfig.Spec.Scaling.makeScaledObject(rollout.TypeMeta, rollout.ObjectMeta)
+			if s, err := fnutils.MakeRNode(scaling); err != nil {
+				return nil, err
+			} else {
+				out = append(out, s)
+			}
 		}
 	}
 	return out, nil

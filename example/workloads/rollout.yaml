@@ -6,7 +6,7 @@ metadata:
   annotations:
     config.kubernetes.io/function: |
       container:
-        image: gcr.io/beecash-prod/infra/krm-functions/rollouts:latest
+        image: gcr.io/beecash-prod/infra/krm-functions/workloads:5204051
 spec:
   part-of: foobar
   app: foobar-api
@@ -26,6 +26,13 @@ spec:
         operation: graphql.execute
         errorRPM: "0.1"
         p95latency: "500ms"
+  scaling: 
+    minreplica: 1
+    maxreplica: 10
+    cpu:
+      target: 60
+    memory:
+      target: 80
 
 ---
   # strategy:
