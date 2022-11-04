@@ -6,7 +6,11 @@ metadata:
   annotations:
     config.kubernetes.io/function: |
       container:
+<<<<<<< HEAD:example/workloads/rollout.yaml
         image: gcr.io/beecash-prod/infra/krm-functions/workloads:8a26b33
+=======
+        image: gcr.io/beecash-prod/infra/krm-functions/workloads:5204051
+>>>>>>> c53d3f4 (scaled object apiversion fix and added scaled object creation to rollouts as well):example/rollouts/rollout.yaml
 spec:
   part-of: foobar
   app: foobar-test
