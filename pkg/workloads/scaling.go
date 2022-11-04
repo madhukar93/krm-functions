@@ -1,8 +1,12 @@
 package workloads
 
 import (
+	"fmt"
+
 	kedav1alpha1 "github.com/kedacore/keda/v2/apis/keda/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const argoApiVersion = "argoproj.io/v1alpha1"
@@ -72,17 +76,25 @@ func (spec scalingSpec) addPubSubTrigger(so *kedav1alpha1.ScaledObject) {
 	so.Spec.Triggers = append(so.Spec.Triggers, pubsubTrigger...)
 }
 
-func (spec scalingSpec) makeScaledObject(typemeta metav1.TypeMeta, objectmeta metav1.ObjectMeta) kedav1alpha1.ScaledObject {
+func (spec scalingSpec) makeScaledObject(workloadData metav1.Object) kedav1alpha1.ScaledObject {
+
+	u := &unstructured.Unstructured{}
+	if uc, err := runtime.DefaultUnstructuredConverter.ToUnstructured(workloadData); err != nil {
+		fmt.Printf("failed to convert to unstructured: %v", err)
+	} else {
+		u.SetUnstructuredContent(uc)
+	}
+
 	scaledObject := kedav1alpha1.ScaledObject{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ScaledObject",
 			APIVersion: kedaApiVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: objectmeta.Name,
+			Name: u.GetName(),
 			Labels: map[string]string{
-				"part-of": objectmeta.Labels["part-of"],
-				"app":     objectmeta.Labels["app"],
+				"part-of": u.GetLabels()["part-of"],
+				"app":     u.GetLabels()["app"],
 			},
 		},
 		Spec: kedav1alpha1.ScaledObjectSpec{
@@ -90,9 +102,9 @@ func (spec scalingSpec) makeScaledObject(typemeta metav1.TypeMeta, objectmeta me
 			MaxReplicaCount: &spec.MaxReplica,
 			Triggers:        []kedav1alpha1.ScaleTriggers{},
 			ScaleTargetRef: &kedav1alpha1.ScaleTarget{
-				APIVersion: typemeta.APIVersion,
-				Kind:       typemeta.Kind,
-				Name:       objectmeta.Name,
+				APIVersion: u.GetAPIVersion(),
+				Kind:       u.GetKind(),
+				Name:       u.GetName(),
 			},
 		},
 	}
