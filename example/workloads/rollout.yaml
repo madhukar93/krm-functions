@@ -6,14 +6,14 @@ metadata:
   annotations:
     config.kubernetes.io/function: |
       container:
-        image: gcr.io/beecash-prod/infra/krm-functions/workloads:5204051
+        image: gcr.io/beecash-prod/infra/krm-functions/workloads:8a26b33
 spec:
   part-of: foobar
-  app: foobar-api
+  app: foobar-test
   env: prod
   reloader: true
   containers:
-    - name: foobar-api
+    - name: foobar-test
       image: foobar
       command: ["python", "server.py"]
       secrets:
