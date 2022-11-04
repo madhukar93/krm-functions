@@ -21,6 +21,7 @@ type spec struct {
 	PartOf     string       `json:"part-of"`
 	App        string       `json:"app"`
 	Env        string       `json:"env,omitempty"`
+	Reloader   bool         `json:"reloader,omitempty"`
 	Containers []container  `json:"containers,omitempty"`
 	Scaling    *scalingSpec `json:"scaling,omitempty"`
 	Strategy   *strategy    `json:"strategy,omitempty"`
@@ -192,6 +193,14 @@ func getAppContainer(d appsv1.Deployment) (*corev1.Container, error) {
 	return nil, fmt.Errorf("no app container found")
 }
 
+func addReloaderAnnotation(objectMeta *metav1.ObjectMeta) {
+	reloaderAnnotations := map[string]string{"reloader.stakater.com/auto": "true"}
+	for k, v := range objectMeta.Annotations {
+		reloaderAnnotations[k] = v
+	}
+	objectMeta.Annotations = reloaderAnnotations
+}
+
 func NewDeployment() *appsv1.Deployment {
 	return &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -226,6 +235,9 @@ func makeDeployment(conf FunctionConfig) appsv1.Deployment {
 	d.ObjectMeta.Name = conf.Spec.App
 	conf.addDeploymentLabels(d)
 	conf.addContainers(d)
+	if conf.Spec.Reloader {
+		addReloaderAnnotation(&d.ObjectMeta)
+	}
 	return *d
 }
 
