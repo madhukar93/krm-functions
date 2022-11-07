@@ -76,10 +76,10 @@ func (spec scalingSpec) addPubSubTrigger(so *kedav1alpha1.ScaledObject) {
 	so.Spec.Triggers = append(so.Spec.Triggers, pubsubTrigger...)
 }
 
-func (spec scalingSpec) makeScaledObject(workloadData metav1.Object) kedav1alpha1.ScaledObject {
+func (spec scalingSpec) makeScaledObject(workload metav1.Object) kedav1alpha1.ScaledObject {
 
 	u := &unstructured.Unstructured{}
-	if uc, err := runtime.DefaultUnstructuredConverter.ToUnstructured(workloadData); err != nil {
+	if uc, err := runtime.DefaultUnstructuredConverter.ToUnstructured(workload); err != nil {
 		fmt.Printf("failed to convert to unstructured: %v", err)
 	} else {
 		u.SetUnstructuredContent(uc)
