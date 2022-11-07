@@ -5,7 +5,7 @@ metadata:
   annotations:
     config.kubernetes.io/function: |
       container:
-        image: gcr.io/beecash-prod/infra/krm-functions/rollouts:latest
+        image: gcr.io/beecash-prod/infra/krm-functions/workloads:8a26b33
 spec:
   part-of: foobar
   app: foobar-api
@@ -27,9 +27,9 @@ spec:
     minreplica: 1
     maxreplica: 10
     cpu:
-      target: "60"
+      target: 60
     memory:
-      target: "80"
+      target: 80
     pubsubTopic:
       name:  dev-tokko-subscription.catalog-integration-product-added
       size: "500"
