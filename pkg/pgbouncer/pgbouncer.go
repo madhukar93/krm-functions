@@ -49,44 +49,11 @@ func (conf FunctionConfig) GetpgbouncerContainers() []corev1.Container {
 			Image: pgbouncerImage,
 			EnvFrom: []corev1.EnvFromSource{
 				{
-					ConfigMapRef: &corev1.ConfigMapEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: getName(conf.Spec),
-						},
-					},
-				},
-				{
 					SecretRef: &corev1.SecretEnvSource{
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: conf.Spec.Connection.CredentialsSecret,
 						},
 					},
-				},
-			},
-			Env: []corev1.EnvVar{
-				{
-					Name: "SERVICE_NAME",
-					ValueFrom: &corev1.EnvVarSource{
-						FieldRef: &corev1.ObjectFieldSelector{
-							FieldPath: "metadata.labels['app']",
-						},
-					},
-				},
-				{
-					Name:  "POSTGRESQL_USERNAME",
-					Value: conf.Spec.Connection.Username,
-				},
-				{
-					Name:  "POSTGRESQL_PASSWORD",
-					Value: conf.Spec.Connection.Password,
-				},
-				{
-					Name:  "POSTGRESQL_DATABASE",
-					Value: conf.Spec.Connection.Database,
-				},
-				{
-					Name:  "POSTGRESQL_PORT",
-					Value: conf.Spec.Connection.Port,
 				},
 			},
 			Resources: corev1.ResourceRequirements{
@@ -134,15 +101,13 @@ func (conf FunctionConfig) GetpgbouncerContainers() []corev1.Container {
 		{
 			Image: prometheusExporterImage,
 			Name:  "prometheus-pgbouncer-exporter",
-			Env: []corev1.EnvVar{
-
+			EnvFrom: []corev1.EnvFromSource{
 				{
-					Name:  "PGBOUNCER_USER",
-					Value: conf.Spec.Connection.Username,
-				},
-				{
-					Name:  "PGBOUNCER_PASS",
-					Value: conf.Spec.Connection.Password,
+					SecretRef: &corev1.SecretEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: conf.Spec.Connection.CredentialsSecret,
+						},
+					},
 				},
 			},
 			Ports: []corev1.ContainerPort{
@@ -306,9 +271,13 @@ func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	svc := f.getService()
 	deployment := f.getDeployment()
 	podmonitor := f.getPodMonitor()
-	cm := f.getConfigMap()
+	if f.Spec.Config != nil {
+		cm := f.getConfigMap()
+		cmRNode, _ := fnutils.MakeRNode(cm)
+		items = append(items, cmRNode)
+	}
 	pdb := f.getPodDisruptionBudget()
-	newNodes, err := fnutils.MakeRNodes(&svc, &deployment, &podmonitor, &cm, &pdb)
+	newNodes, err := fnutils.MakeRNodes(&svc, &deployment, &podmonitor, &pdb)
 	items = append(items, newNodes...)
 	return items, err
 }
