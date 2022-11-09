@@ -265,6 +265,23 @@ func (conf FunctionConfig) getPodDisruptionBudget() policyv1.PodDisruptionBudget
 	return podDisruptionBudget
 }
 
+func addConfigMapReference(d *appsv1.Deployment, cmName string) {
+	configmapRef := []corev1.EnvFromSource{
+		{
+			ConfigMapRef: &corev1.ConfigMapEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: cmName,
+				},
+			},
+		},
+	}
+	for container := range d.Spec.Template.Spec.Containers {
+		if d.Spec.Template.Spec.Containers[container].Name == "pgbouncer" {
+			d.Spec.Template.Spec.Containers[container].EnvFrom = append(configmapRef, d.Spec.Template.Spec.Containers[container].EnvFrom...)
+		}
+	}
+}
+
 // KRMFunctionConfig.Filter is called from kio.Filter, which handles Results/errors appropriately
 // errors break the pipeline, results are appended to the resource lists' Results
 func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
@@ -275,6 +292,7 @@ func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		cm := f.getConfigMap()
 		cmRNode, _ := fnutils.MakeRNode(cm)
 		items = append(items, cmRNode)
+		addConfigMapReference(&deployment, cm.ObjectMeta.Name)
 	}
 	pdb := f.getPodDisruptionBudget()
 	newNodes, err := fnutils.MakeRNodes(&svc, &deployment, &podmonitor, &pdb)
