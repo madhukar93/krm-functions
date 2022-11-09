@@ -122,7 +122,7 @@ vault infra/postgres/tokko-api-postgres/creds
 - [ ] environments
 - [ ] container template
 - [x] argocd integration
-- [ ] reloader
+- [x] reloader
 
 ### supporting multiple environment
 
