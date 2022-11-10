@@ -16,14 +16,22 @@ type JobFunctionConfig struct {
 
 type jobSpec struct {
 	spec
+	GenerateNameSuffix bool `json:"generateNameSuffix,omitempty"`
 	Schedule string `json:"schedule,omitempty"`
 }
 
 func GetJobSpec(jobConf JobFunctionConfig) batchv1.JobSpec {
+	var name string
+	if jobConf.Spec.GenerateNameSuffix {
+		name = jobConf.Spec.App + "-" + randomString()
+	} else {
+		name = jobConf.Spec.App
+	}
+
 	jobSpec := batchv1.JobSpec{
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: jobConf.Spec.App,
+				Name: name,
 				Labels: map[string]string{
 					"part-of": jobConf.Spec.PartOf,
 					"app":     jobConf.Spec.App,
