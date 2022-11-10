@@ -23,7 +23,7 @@ type jobSpec struct {
 func GetJobSpec(jobConf JobFunctionConfig) batchv1.JobSpec {
 	var name string
 	if jobConf.Spec.GenerateNameSuffix {
-		name = jobConf.Spec.App + "-" + randomString()
+		name = jobConf.Spec.App + "-" + utils.randStringRunes(5)
 	} else {
 		name = jobConf.Spec.App
 	}
