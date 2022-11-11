@@ -18,17 +18,17 @@ type JobFunctionConfig struct {
 
 type jobSpec struct {
 	spec
-	GenerateNameSuffix bool `json:"generateNameSuffix,omitempty"`
-	Schedule string `json:"schedule,omitempty"`
+	GenerateNameSuffix bool   `json:"generateNameSuffix,omitempty"`
+	Schedule           string `json:"schedule,omitempty"`
 }
 
 func GetJobSpec(jobConf JobFunctionConfig) batchv1.JobSpec {
 	var name string
-	if jobConf.Spec.GenerateNameSuffix {
-		name = jobConf.Spec.App + "-" + utils.randStringRunes(5)
-	} else {
-		name = jobConf.Spec.App
-	}
+	// if jobConf.Spec.GenerateNameSuffix {
+	// 	name = jobConf.Spec.App + "-" + utils.randStringRunes(5)
+	// } else {
+	// 	name = jobConf.Spec.App
+	// }
 
 	jobSpec := batchv1.JobSpec{
 		Template: corev1.PodTemplateSpec{
