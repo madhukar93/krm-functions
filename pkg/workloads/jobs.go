@@ -1,6 +1,8 @@
 package workloads
 
 import (
+	"fmt"
+
 	"github.com/bukukasio/krm-functions/pkg/fnutils"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -100,22 +102,26 @@ func makeJob(jobConfig JobFunctionConfig) batchv1.Job {
 
 func (fnConfig *JobFunctionConfig) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	out := []*kyaml.RNode{}
-	if fnConfig.Kind == "LummoJob" {
-		job := makeJob(*fnConfig)
-		if d, err := fnutils.MakeRNode(job); err != nil {
-			return nil, err
-		} else {
-			out = append(out, d)
+	for _, node := range nodes {
+		fmt.Println(node.GetKind())
+		if node.GetKind() == "LummoJob" {
+			job := makeJob(*fnConfig)
+			if d, err := fnutils.MakeRNode(job); err != nil {
+				return nil, err
+			} else {
+				out = append(out, d)
+			}
+		}
+
+		if node.GetKind() == "LummoCron" {
+			cronjob := makeCronJob(*fnConfig)
+			if d, err := fnutils.MakeRNode(cronjob); err != nil {
+				return nil, err
+			} else {
+				out = append(out, d)
+			}
 		}
 	}
 
-	if fnConfig.Kind == "LummoCron" {
-		cronjob := makeCronJob(*fnConfig)
-		if d, err := fnutils.MakeRNode(cronjob); err != nil {
-			return nil, err
-		} else {
-			out = append(out, d)
-		}
-	}
 	return out, nil
 }
