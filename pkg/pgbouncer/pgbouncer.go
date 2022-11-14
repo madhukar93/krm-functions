@@ -101,6 +101,12 @@ func (conf FunctionConfig) GetpgbouncerContainers() []corev1.Container {
 		{
 			Image: prometheusExporterImage,
 			Name:  "prometheus-pgbouncer-exporter",
+			Env: []corev1.EnvVar{
+				{
+					Name:  "PGBOUNCER_EXPORTER_HOST",
+					Value: "0.0.0.0",
+				},
+			},
 			EnvFrom: []corev1.EnvFromSource{
 				{
 					SecretRef: &corev1.SecretEnvSource{
