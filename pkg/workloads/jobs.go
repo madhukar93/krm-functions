@@ -1,8 +1,8 @@
 package workloads
 
 import (
-	random "github.com/bukukasio/krm-functions/pkg"
 	"github.com/bukukasio/krm-functions/pkg/fnutils"
+	utils "github.com/bukukasio/krm-functions/pkg/utils"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +24,7 @@ type jobSpec struct {
 func GetJobSpec(jobConf JobFunctionConfig) batchv1.JobSpec {
 	var name string
 	if jobConf.Spec.GenerateNameSuffix {
-		name = jobConf.Spec.App + "-" + random.RandomString(8)
+		name = jobConf.Spec.App + "-" + utils.RandomString(8)
 	} else {
 		name = jobConf.Spec.App
 	}
