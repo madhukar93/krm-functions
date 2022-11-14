@@ -1,11 +1,8 @@
 package workloads
 
 import (
-	"math/rand"
-	"strings"
-	"time"
-
 	"github.com/bukukasio/krm-functions/pkg/fnutils"
+	"github.com/bukukasio/krm-functions/pkg/random"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,26 +18,13 @@ type JobFunctionConfig struct {
 type jobSpec struct {
 	spec
 	Schedule           string `json:"schedule,omitempty"`
-	GenerateNameSuffix bool   `json:"generate_name_suffix,omitempty"`
-}
-
-const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-func randomString(n int) string {
-
-	rand.Seed(time.Now().UnixNano())
-	sb := strings.Builder{}
-	sb.Grow(n)
-	for i := 0; i < n; i++ {
-		sb.WriteByte(charset[rand.Intn(len(charset))])
-	}
-	return sb.String()
+	GenerateNameSuffix bool   `json:"generateNameSuffix,omitempty"`
 }
 
 func GetJobSpec(jobConf JobFunctionConfig) batchv1.JobSpec {
 	var name string
 	if jobConf.Spec.GenerateNameSuffix {
-		name = jobConf.Spec.App + "-" + randomString(8)
+		name = jobConf.Spec.App + "-" + random.RandomString(8)
 	} else {
 		name = jobConf.Spec.App
 	}

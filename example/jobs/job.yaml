@@ -30,7 +30,7 @@ metadata:
       container:
         image: gcr.io/beecash-prod/infra/krm-functions/jobs:latest
 spec:
-  generate_name_suffix: true
+  generateNameSuffix: true
   part-of: foobar
   app: foobar-api
   containers:
