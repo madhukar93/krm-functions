@@ -2,6 +2,7 @@ package workloads
 
 import (
 	"github.com/bukukasio/krm-functions/pkg/fnutils"
+	utils "github.com/bukukasio/krm-functions/pkg/utils"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,14 +17,21 @@ type JobFunctionConfig struct {
 
 type jobSpec struct {
 	spec
-	Schedule string `json:"schedule,omitempty"`
+	Schedule           string `json:"schedule,omitempty"`
+	GenerateNameSuffix bool   `json:"generateNameSuffix,omitempty"`
 }
 
 func GetJobSpec(jobConf JobFunctionConfig) batchv1.JobSpec {
+	var name string
+	if jobConf.Spec.GenerateNameSuffix {
+		name = jobConf.Spec.App + "-" + utils.RandomString(8)
+	} else {
+		name = jobConf.Spec.App
+	}
 	jobSpec := batchv1.JobSpec{
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: jobConf.Spec.App,
+				Name: name,
 				Labels: map[string]string{
 					"part-of": jobConf.Spec.PartOf,
 					"app":     jobConf.Spec.App,
