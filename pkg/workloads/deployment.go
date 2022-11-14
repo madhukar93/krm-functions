@@ -17,15 +17,20 @@ type FunctionConfig struct {
 	Spec              spec `json:"spec"`
 }
 
-type spec struct {
+type podSpec struct {
 	PartOf     string       `json:"part-of"`
 	App        string       `json:"app"`
 	Env        string       `json:"env,omitempty"`
-	Reloader   bool         `json:"reloader,omitempty"`
 	Containers []container  `json:"containers,omitempty"`
+}
+
+type deploymentSpec struct {
+	podSpec
+	Reloader   bool         `json:"reloader,omitempty"`
 	Scaling    *scalingSpec `json:"scaling,omitempty"`
 	Strategy   *strategy    `json:"strategy,omitempty"`
 }
+
 
 func (s spec) GetContainers() []corev1.Container {
 	// TODO: what was that receiver param thingy? is using that considered good practise?

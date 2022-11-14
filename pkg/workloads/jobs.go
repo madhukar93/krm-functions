@@ -109,5 +109,5 @@ func (fnConfig *JobFunctionConfig) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode,
 			out = append(out, d)
 		}
 	}
-	return out, nil
+	return append(out, nodes...), nil
 }
