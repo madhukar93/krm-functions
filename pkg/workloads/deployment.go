@@ -14,20 +14,24 @@ import (
 type FunctionConfig struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta `json:"metadata"`
-	Spec              spec `json:"spec"`
+	Spec              deploymentSpec `json:"spec"`
 }
 
-type spec struct {
-	PartOf     string       `json:"part-of"`
-	App        string       `json:"app"`
-	Env        string       `json:"env,omitempty"`
-	Reloader   bool         `json:"reloader,omitempty"`
-	Containers []container  `json:"containers,omitempty"`
-	Scaling    *scalingSpec `json:"scaling,omitempty"`
-	Strategy   *strategy    `json:"strategy,omitempty"`
+type deploymentSpec struct {
+	podSpec
+	Reloader bool         `json:"reloader,omitempty"`
+	Scaling  *scalingSpec `json:"scaling,omitempty"`
+	Strategy *strategy    `json:"strategy,omitempty"`
 }
 
-func (s spec) GetContainers() []corev1.Container {
+type podSpec struct {
+	PartOf     string      `json:"part-of"`
+	App        string      `json:"app"`
+	Env        string      `json:"env,omitempty"`
+	Containers []container `json:"containers,omitempty"`
+}
+
+func (s podSpec) GetContainers() []corev1.Container {
 	// TODO: what was that receiver param thingy? is using that considered good practise?
 	cs := []corev1.Container{}
 	for _, c := range s.Containers {
