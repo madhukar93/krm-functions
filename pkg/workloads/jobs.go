@@ -1,8 +1,8 @@
 package workloads
 
 import (
+	random "github.com/bukukasio/krm-functions/pkg"
 	"github.com/bukukasio/krm-functions/pkg/fnutils"
-	"github.com/bukukasio/krm-functions/pkg/random"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,7 +28,6 @@ func GetJobSpec(jobConf JobFunctionConfig) batchv1.JobSpec {
 	} else {
 		name = jobConf.Spec.App
 	}
-
 	jobSpec := batchv1.JobSpec{
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
