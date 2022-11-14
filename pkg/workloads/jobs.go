@@ -16,7 +16,7 @@ type JobFunctionConfig struct {
 }
 
 type jobSpec struct {
-	spec
+	podSpec
 	Schedule           string `json:"schedule,omitempty"`
 	GenerateNameSuffix bool   `json:"generateNameSuffix,omitempty"`
 }
