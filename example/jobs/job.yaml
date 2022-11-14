@@ -1,25 +1,25 @@
-# apiVersion: lummoKRM/v1
-# kind: LummoCron
-# metadata:
-#   name: test-app
-#   namespace: test
-#   annotations:
-#     config.kubernetes.io/function: |
-#       container:
-#         image: gcr.io/beecash-prod/infra/krm-functions/jobs:latest
-# spec:
-#   part-of: foobar
-#   app: foobar-api
-#   schedule: "* * * * *"
-#   containers:
-#     - name: foobar-api
-#       image: foobar
-#       command: ["python", "server.py"]
-#       secrets:
-#         - foobar-api-database-secrets
-#       configs:
-#         - foobar-api-config
-# ---
+apiVersion: lummoKRM/v1
+kind: LummoCron
+metadata:
+  name: test-app
+  namespace: test
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: gcr.io/beecash-prod/infra/krm-functions/jobs:latest
+spec:
+  part-of: foobar
+  app: foobar-api
+  schedule: "* * * * *"
+  containers:
+    - name: foobar-api
+      image: foobar
+      command: ["python", "server.py"]
+      secrets:
+        - foobar-api-database-secrets
+      configs:
+        - foobar-api-config
+---
 apiVersion: lummoKRM/v1
 kind: LummoJob
 metadata:
