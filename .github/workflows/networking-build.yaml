@@ -8,5 +8,8 @@ jobs:
   build:
     name: build and publish
     uses: bukukasio/krm-functions/.github/workflows/common-build.yaml@master
-    inputs:
-      function: "jobs"
+    with:
+      function: "networking"
+    secrets:
+      service_account_key: ${{ secrets.GOOGLE_CLOUD_ACCOUNT }}
+      project_id: ${{ secrets.BEECASH_PROJECT_ID }}

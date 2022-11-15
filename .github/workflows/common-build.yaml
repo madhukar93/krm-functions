@@ -12,7 +12,13 @@ on:
         required: false
         type: string
         default: "infra/krm-functions"
-
+    secrets:
+      service_account_key:
+        description: "GCP Service Account Key"
+        required: true
+      project_id:
+        description: "GCP Project ID"
+        required: true
 jobs:
   build:
     name: docker build and push
@@ -27,8 +33,8 @@ jobs:
         id: image_tag
         shell: bash
         run: |
-          GCR_PROJECT_ID=${{ secrets.BEECASH_PROJECT_ID }}
-          IMAGE="gcr.io/$GCR_PROJECT_ID/${{ inputs.image_name }}/$FUNCTION"
+          GCR_PROJECT_ID=${{ secrets.project_id }}
+          IMAGE="gcr.io/$GCR_PROJECT_ID/${{ inputs.image_name }}/${{ inputs.function }}"
           BRANCH="${GITHUB_REF#refs/heads/}"
           SHA="$(git rev-parse --short HEAD)"
           IMAGE_TAG_FULL="$IMAGE:$BRANCH-$SHA"
@@ -40,7 +46,7 @@ jobs:
       - name: docker login
         uses: "lagren/docker-gcr-action@master"
         with:
-          SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_CLOUD_ACCOUNT }}
+          SERVICE_ACCOUNT_KEY: ${{ secrets.service_account_key }}
           HOST: "gcr.io"
           
       # Build and push to GCR
