@@ -3,6 +3,10 @@ on:
   push:
     branches:
       - master
+    paths:
+      - './cmd/networking'
+      - './pkg/networking'
+      - './pkg/common'
 
 jobs:
   build:

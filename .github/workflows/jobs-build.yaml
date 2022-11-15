@@ -3,6 +3,10 @@ on:
   push:
     branches:
       - master
+    paths:
+      - './cmd/jobs'
+      - './pkg/workloads'
+      - './pkg/common'
 
 jobs:
   build:

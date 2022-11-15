@@ -3,7 +3,11 @@ on:
   push:
     branches:
       - master
-
+    paths:
+      - './cmd/workloads'
+      - './pkg/workloads'
+      - './pkg/common'
+      
 jobs:
   build:
     name: build and publish
