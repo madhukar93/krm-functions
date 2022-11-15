@@ -1,0 +1,54 @@
+name: Build Release KRM
+on:
+  push:
+    branches:
+      - master
+
+env:
+  FUNCTION: "workloads"
+  IMAGE_NAME: "infra/krm-functions"
+
+jobs:
+  build:
+    name: docker build and push
+    runs-on: ['self-hosted', 'kubernetes', 'staging']
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      # Generating the Docker Image Tag
+      # gcr.io/beecash-prod/infra/krm-functions/jobs:latest
+      - name: Docker Image Tag creation
+        id: image_tag
+        shell: bash
+        run: |
+          GCR_PROJECT_ID="${{ secrets.project_id }}"
+          IMAGE="gcr.io/$GCR_PROJECT_ID/$IMAGE_NAME/$FUNCTION"
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          SHA="$(git rev-parse --short HEAD)"
+          IMAGE_TAG_FULL="$IMAGE:$BRANCH-$SHA"
+          echo "::set-output name=IMAGE::$IMAGE"
+          echo "::set-output name=IMAGE_TAG_FULL::$IMAGE_TAG_FULL"
+          echo ":whale2: Image Tag: ${IMAGE_TAG_FULL} " >> $GITHUB_STEP_SUMMARY
+
+      # Login to GCR
+      - name: docker login
+        uses: "lagren/docker-gcr-action@master"
+        with:
+          SERVICE_ACCOUNT_KEY: ${{ secrets.service_account_key }}
+          HOST: "gcr.io"
+          
+      # Build and push to GCR
+      - uses: docker/setup-buildx-action@v1.5.1
+        with:
+          driver: docker
+
+      - name: docker publish image
+        uses: docker/build-push-action@v2.6.1
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: |
+            FUNCTION=$FUNCTION
+          push: false
+          tags: ${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}
