@@ -19,6 +19,7 @@ on:
       project_id:
         description: "GCP Project ID"
         required: true
+
 jobs:
   build:
     name: docker build and push
@@ -60,5 +61,5 @@ jobs:
           context: .
           file: ./Dockerfile
           build-args: FUNCTION=${{ inputs.function }}
-          push: false
+          push: false #change to true
           tags: ${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}

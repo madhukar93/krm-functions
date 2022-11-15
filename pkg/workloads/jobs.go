@@ -1,8 +1,8 @@
 package workloads
 
 import (
-	"github.com/bukukasio/krm-functions/pkg/fnutils"
-	utils "github.com/bukukasio/krm-functions/pkg/utils"
+	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
+	utils "github.com/bukukasio/krm-functions/pkg/common/utils"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

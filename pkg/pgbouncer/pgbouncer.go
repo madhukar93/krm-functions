@@ -1,7 +1,7 @@
 package pgbouncer
 
 import (
-	"github.com/bukukasio/krm-functions/pkg/fnutils"
+	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"

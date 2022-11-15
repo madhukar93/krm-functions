@@ -4,6 +4,10 @@ on:
     branches:
       - master
       - build-actions
+    paths:
+      - './cmd/pgbouncer'
+      - './pkg/pgbouncer'
+      - './pkg/common'
 
 jobs:
   build:
