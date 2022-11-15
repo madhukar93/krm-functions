@@ -49,8 +49,6 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          build-args: |
-            FUNCTION=$FUNCTION
           env:
             FUNCTION: $FUNCTION
           push: false
