@@ -1,0 +1,13 @@
+name: Build Release PGbouncer KRM
+on:
+  push:
+    branches:
+      - master
+      - build-actions
+
+jobs:
+  build:
+    name: build and publish
+    uses: bukukasio/krm-functions/.github/workflows/common-build.yaml@build-actions
+    inputs:
+      function: "pgbouncer"
