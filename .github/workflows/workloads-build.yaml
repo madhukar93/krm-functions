@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - build-actions
 
 env:
   FUNCTION: "workloads"
