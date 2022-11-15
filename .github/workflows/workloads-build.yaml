@@ -49,6 +49,6 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          build-args: FUNCTION=$FUNCTION
+          build-args: FUNCTION=${{ env.FUNCTION }}
           push: false
           tags: ${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}
