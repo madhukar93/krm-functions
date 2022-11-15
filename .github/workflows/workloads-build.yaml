@@ -23,20 +23,20 @@ jobs:
         id: image_tag
         shell: bash
         run: |
-          GCR_PROJECT_ID="${{ secrets.project_id }}"
+          GCR_PROJECT_ID=${{ secrets.BEECASH_PROJECT_ID }}
           IMAGE="gcr.io/$GCR_PROJECT_ID/$IMAGE_NAME/$FUNCTION"
           BRANCH="${GITHUB_REF#refs/heads/}"
           SHA="$(git rev-parse --short HEAD)"
           IMAGE_TAG_FULL="$IMAGE:$BRANCH-$SHA"
-          echo "::set-output name=IMAGE::$IMAGE"
-          echo "::set-output name=IMAGE_TAG_FULL::$IMAGE_TAG_FULL"
+          echo "IMAGE=$IMAGE" >> $GITHUB_OUTPUT
+          echo "IMAGE_TAG_FULL=$IMAGE_TAG_FULL" >> $GITHUB_OUTPUT
           echo ":whale2: Image Tag: ${IMAGE_TAG_FULL} " >> $GITHUB_STEP_SUMMARY
 
       # Login to GCR
       - name: docker login
         uses: "lagren/docker-gcr-action@master"
         with:
-          SERVICE_ACCOUNT_KEY: ${{ secrets.service_account_key }}
+          SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_CLOUD_ACCOUNT }}
           HOST: "gcr.io"
           
       # Build and push to GCR
