@@ -7,7 +7,7 @@ import (
 
 	yml "sigs.k8s.io/yaml"
 
-	"github.com/bukukasio/krm-functions/pkg/fnutils"
+	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
 	cv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	traefik "github.com/traefik/traefik/v2/pkg/provider/kubernetes/crd/traefik/v1alpha1"

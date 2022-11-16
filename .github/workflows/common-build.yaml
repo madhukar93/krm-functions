@@ -1,0 +1,65 @@
+name: Reusable Build workflow
+
+on:
+  workflow_call:
+    inputs:
+      function: 
+        description: "KRM Function name"
+        required: true
+        type: string
+      image_name: 
+        description: "Docker image name"
+        required: false
+        type: string
+        default: "infra/krm-functions"
+    secrets:
+      service_account_key:
+        description: "GCP Service Account Key"
+        required: true
+      project_id:
+        description: "GCP Project ID"
+        required: true
+
+jobs:
+  build:
+    name: docker build and push
+    runs-on: ['self-hosted', 'kubernetes', 'staging']
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      # Generating the Docker Image Tag
+      # gcr.io/beecash-prod/infra/krm-functions/jobs:latest
+      - name: Docker Image Tag creation
+        id: image_tag
+        shell: bash
+        run: |
+          GCR_PROJECT_ID=${{ secrets.project_id }}
+          IMAGE="gcr.io/$GCR_PROJECT_ID/${{ inputs.image_name }}/${{ inputs.function }}"
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          SHA="$(git rev-parse --short HEAD)"
+          IMAGE_TAG_FULL="$IMAGE:$BRANCH-$SHA"
+          echo "IMAGE=$IMAGE" >> $GITHUB_OUTPUT
+          echo "IMAGE_TAG_FULL=$IMAGE_TAG_FULL" >> $GITHUB_OUTPUT
+          echo ":whale2: Image Tag: ${IMAGE_TAG_FULL} " >> $GITHUB_STEP_SUMMARY
+
+      # Login to GCR
+      - name: docker login
+        uses: "lagren/docker-gcr-action@master"
+        with:
+          SERVICE_ACCOUNT_KEY: ${{ secrets.service_account_key }}
+          HOST: "gcr.io"
+          
+      # Build and push to GCR
+      - uses: docker/setup-buildx-action@v1.5.1
+        with:
+          driver: docker
+
+      - name: docker publish image
+        uses: docker/build-push-action@v2.6.1
+        with:
+          context: .
+          file: ./Dockerfile
+          build-args: FUNCTION=${{ inputs.function }}
+          push: false #change to true
+          tags: ${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}
