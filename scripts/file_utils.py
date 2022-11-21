@@ -3,7 +3,7 @@ from ruamel.yaml import YAML
 from glob import glob
 
 
-FOLDER = './tokko-k8s/tokko-applications/ucp' 
+FOLDER = './tokko-k8s/tokko-applications' 
 
 yaml = YAML()
 yaml.preserve_quotes=True
