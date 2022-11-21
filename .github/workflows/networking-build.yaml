@@ -4,9 +4,9 @@ on:
     branches:
       - master
     paths:
-      - './cmd/networking'
-      - './pkg/networking'
-      - './pkg/common'
+      - '**/cmd/networking/**'
+      - '**/pkg/networking/**'
+      - '**/pkg/common/**'
 
 jobs:
   build:
@@ -17,3 +17,4 @@ jobs:
     secrets:
       service_account_key: ${{ secrets.GOOGLE_CLOUD_ACCOUNT }}
       project_id: ${{ secrets.BEECASH_PROJECT_ID }}
+      git_token: ${{ secrets.GH_COMMON_USER_TOKEN }}

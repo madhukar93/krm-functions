@@ -3,9 +3,7 @@ on:
   push:
     branches:
       - master
-      - release-scripts
     paths:
-      - '**'
       - '**/cmd/workloads/**'
       - '**/pkg/workloads/**'
       - '**/pkg/common/**'
@@ -13,7 +11,7 @@ on:
 jobs:
   build:
     name: build and publish
-    uses: bukukasio/krm-functions/.github/workflows/common-build.yaml@release-scripts
+    uses: bukukasio/krm-functions/.github/workflows/common-build.yaml
     with:
       function: "workloads"
     secrets:
