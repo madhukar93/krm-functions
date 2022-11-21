@@ -12,7 +12,7 @@ on:
 jobs:
   build:
     name: build and publish
-    uses: bukukasio/krm-functions/.github/workflows/common-build.yaml@master
+    uses: bukukasio/krm-functions/.github/workflows/common-build.yaml@release-scripts
     with:
       function: "workloads"
     secrets:
