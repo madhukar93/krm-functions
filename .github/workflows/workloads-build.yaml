@@ -18,3 +18,4 @@ jobs:
     secrets:
       service_account_key: ${{ secrets.GOOGLE_CLOUD_ACCOUNT }}
       project_id: ${{ secrets.BEECASH_PROJECT_ID }}
+      git_token: ${{ secrets.GH_COMMON_USER_TOKEN }}
