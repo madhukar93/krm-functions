@@ -22,7 +22,7 @@ on:
       git_token:
         description: "Git PAT for authentication"
         required: true
-        
+
 jobs:
   build:
     name: docker build and push
@@ -72,6 +72,8 @@ jobs:
         with:
           python-version: '3.10'
           cache: 'poetry' # caching poetry dependencies
+
+      - name: release krm function script
         if: success()
         run: |
           echo "${{ secrets.git_token }}" >> $GIT_TOKEN
