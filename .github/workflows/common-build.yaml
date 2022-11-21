@@ -81,4 +81,4 @@ jobs:
         run: |
           poetry install
           export new_tag=`echo "${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}" | cut -d ":" -f 2`
-          poetry run python scripts/git_test.py ${{ inputs.function }} $new_tag
+          poetry run python scripts/krm_release.py ${{ inputs.function }} $new_tag
