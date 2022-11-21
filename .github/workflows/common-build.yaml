@@ -68,14 +68,16 @@ jobs:
           tags: ${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}
 
       # release krm function to the services
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
           cache: 'poetry' # caching poetry dependencies
-
       - name: release krm function script
         if: success()
         run: |
+          poetry install
           echo "${{ secrets.git_token }}" >> $GIT_TOKEN
           export new_tag=`echo "${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}" | cut -d ":" -f 2`
           python ./scripts/krm_release.py ${{ inputs.function }} $new_tag
