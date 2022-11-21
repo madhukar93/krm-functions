@@ -1,5 +1,4 @@
 import os
-import python_jwt as jwt, jwcrypto.jwk as jwk, datetime
 from git import Repo
 from github import Github
 
