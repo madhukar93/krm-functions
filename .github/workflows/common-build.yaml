@@ -19,7 +19,10 @@ on:
       project_id:
         description: "GCP Project ID"
         required: true
-
+      git_token:
+        description: "Git PAT for authentication"
+        required: true
+        
 jobs:
   build:
     name: docker build and push
@@ -63,3 +66,14 @@ jobs:
           build-args: FUNCTION=${{ inputs.function }}
           push: true
           tags: ${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}
+
+      # release krm function to the services
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'poetry' # caching poetry dependencies
+        if: success()
+        run: |
+          echo "${{ secrets.git_token }}" >> $GIT_TOKEN
+          new_tag=`echo "${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}" | cut -d ":" -f 2`
+          python ./scripts/krm_release.py ${{ inputs.function }} ${{ new_tag }}

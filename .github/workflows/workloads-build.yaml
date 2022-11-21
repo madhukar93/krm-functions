@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - release-scripts
     paths:
       - './cmd/workloads'
       - './pkg/workloads'
