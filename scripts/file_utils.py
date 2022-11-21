@@ -35,7 +35,7 @@ def modify_files(function_name, new_tag):
                         continue
             except Exception:
                 # catching too generic exception as try block only does load all objects from file.
-                # Need to continue execution of the program for files that can be loaded and parsed.
+                # Need to continue execution of the program for files that cannot be loaded and parsed.
                 continue
 
         if change_file:
