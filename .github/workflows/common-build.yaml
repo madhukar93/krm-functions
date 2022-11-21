@@ -76,8 +76,9 @@ jobs:
           cache: 'poetry' # caching poetry dependencies
       - name: release krm function script
         if: success()
+        env:
+          GIT_TOKEN: ${{ secrets.git_token }}
         run: |
           poetry install
-          echo "${{ secrets.git_token }}" >> $GIT_TOKEN
           export new_tag=`echo "${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}" | cut -d ":" -f 2`
           python ./scripts/krm_release.py ${{ inputs.function }} $new_tag
