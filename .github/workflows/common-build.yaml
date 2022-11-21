@@ -77,5 +77,5 @@ jobs:
         if: success()
         run: |
           echo "${{ secrets.git_token }}" >> $GIT_TOKEN
-          new_tag=`echo "${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}" | cut -d ":" -f 2`
-          python ./scripts/krm_release.py ${{ inputs.function }} ${{ new_tag }}
+          export new_tag=`echo "${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}" | cut -d ":" -f 2`
+          python ./scripts/krm_release.py ${{ inputs.function }} $new_tag
