@@ -10,7 +10,7 @@ REPO="tokko-k8s"
 BASE_BRANCH="master"
 AUTHOR="lummo-robot@lummo.com"
 GIT_USER="lummo-robot"
-GIT_TOKEN=os.getenv["GIT_TOKEN"]
+GIT_TOKEN=os.getenv("GIT_TOKEN")
 
 def git_clone_checkout(branch_name):
     git_url = f"https://{GIT_USER}:{GIT_TOKEN}@github.com/bukukasio/tokko-k8s"
