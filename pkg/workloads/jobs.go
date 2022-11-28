@@ -17,28 +17,24 @@ type JobFunctionConfig struct {
 
 type jobSpec struct {
 	podSpec
+	RestartPolicy      string `json:"restartPolicy,omitempty"`
 	Schedule           string `json:"schedule,omitempty"`
 	GenerateNameSuffix bool   `json:"generateNameSuffix,omitempty"`
 }
 
 func GetJobSpec(jobConf JobFunctionConfig) batchv1.JobSpec {
-	var name string
-	if jobConf.Spec.GenerateNameSuffix {
-		name = jobConf.Spec.App + "-" + utils.RandomString(8)
-	} else {
-		name = jobConf.Spec.App
-	}
 	jobSpec := batchv1.JobSpec{
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: name,
+				Name: jobConf.Spec.App,
 				Labels: map[string]string{
 					"part-of": jobConf.Spec.PartOf,
 					"app":     jobConf.Spec.App,
 				},
 			},
 			Spec: corev1.PodSpec{
-				Containers: jobConf.Spec.GetContainers(),
+				Containers:    jobConf.Spec.GetContainers(),
+				RestartPolicy: corev1.RestartPolicy(jobConf.Spec.RestartPolicy),
 			},
 		},
 	}
@@ -81,13 +77,19 @@ func makeCronJob(jobConfig JobFunctionConfig) batchv1.CronJob {
 }
 
 func makeJob(jobConfig JobFunctionConfig) batchv1.Job {
+	var name string
+	if jobConfig.Spec.GenerateNameSuffix {
+		name = jobConfig.Spec.App + "-" + utils.RandomString(8)
+	} else {
+		name = jobConfig.Spec.App
+	}
 	job := batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Job",
 			APIVersion: "batch/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: jobConfig.Spec.App,
+			Name: name,
 			Labels: map[string]string{
 				"part-of": jobConfig.Spec.PartOf,
 				"app":     jobConfig.Spec.App,

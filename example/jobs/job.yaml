@@ -33,6 +33,7 @@ spec:
   generateNameSuffix: true
   part-of: foobar
   app: foobar-api
+  restartPolicy: "Never" # values can be OnFailure, Never
   containers:
     - name: foobar-api
       image: foobar
