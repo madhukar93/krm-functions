@@ -61,5 +61,5 @@ jobs:
           context: .
           file: ./Dockerfile
           build-args: FUNCTION=${{ inputs.function }}
-          push: false #change to true
+          push: true
           tags: ${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}

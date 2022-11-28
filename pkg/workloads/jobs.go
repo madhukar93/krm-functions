@@ -17,6 +17,7 @@ type JobFunctionConfig struct {
 
 type jobSpec struct {
 	podSpec
+	RestartPolicy      string `json:"restartPolicy,omitempty"`
 	Schedule           string `json:"schedule,omitempty"`
 	GenerateNameSuffix bool   `json:"generateNameSuffix,omitempty"`
 }
@@ -32,7 +33,8 @@ func GetJobSpec(jobConf JobFunctionConfig) batchv1.JobSpec {
 				},
 			},
 			Spec: corev1.PodSpec{
-				Containers: jobConf.Spec.GetContainers(),
+				Containers:    jobConf.Spec.GetContainers(),
+				RestartPolicy: corev1.RestartPolicy(jobConf.Spec.RestartPolicy),
 			},
 		},
 	}
