@@ -4,9 +4,9 @@ on:
     branches:
       - master
     paths:
-      - '**/cmd/jobs/**'
-      - '**/pkg/workloads/**'
-      - '**/pkg/common/**'
+      - 'cmd/jobs/**'
+      - 'pkg/workloads/**'
+      - 'pkg/common/**'
 
 jobs:
   build:
