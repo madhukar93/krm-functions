@@ -6,17 +6,21 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kube-openapi/pkg/validation/spec"
+	"sigs.k8s.io/kustomize/kyaml/errors"
+	"sigs.k8s.io/kustomize/kyaml/fn/framework"
+	"sigs.k8s.io/kustomize/kyaml/resid"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 type JobFunctionConfig struct {
-	metav1.TypeMeta   `json:"inline"`
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 	Spec              jobSpec `json:"spec"`
 }
 
 type jobSpec struct {
-	podSpec            `json:"inline"`
+	podSpec            `json:",inline"`
 	RestartPolicy      string `json:"restartPolicy,omitempty"`
 	Schedule           string `json:"schedule,omitempty"`
 	GenerateNameSuffix bool   `json:"generateNameSuffix,omitempty"`
@@ -120,4 +124,9 @@ func (fnConfig *JobFunctionConfig) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode,
 		}
 	}
 	return out, nil
+}
+
+func (a JobFunctionConfig) Schema() (*spec.Schema, error) {
+	schema, err := framework.SchemaFromFunctionDefinition(resid.NewGvk("krm", "workloads", "JobFunctionConfig"), fnutils.LoadConfig("crd/workloads/krm_jobfunctionconfigs.yaml"))
+	return schema, errors.WrapPrefixf(err, "\n parsing jobs schema")
 }

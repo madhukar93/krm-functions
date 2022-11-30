@@ -11,6 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	openapispec "k8s.io/kube-openapi/pkg/validation/spec"
+	"sigs.k8s.io/kustomize/kyaml/errors"
+	"sigs.k8s.io/kustomize/kyaml/fn/framework"
+	"sigs.k8s.io/kustomize/kyaml/resid"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -307,4 +311,9 @@ func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	newNodes, err := fnutils.MakeRNodes(&svc, &deployment, &podmonitor, &pdb)
 	items = append(items, newNodes...)
 	return items, err
+}
+
+func (a FunctionConfig) Schema() (*openapispec.Schema, error) {
+	schema, err := framework.SchemaFromFunctionDefinition(resid.NewGvk("krm", "pgbouncer", "FunctionConfig"), fnutils.LoadConfig("crd/pgbouncer/krm_functionconfigs.yaml"))
+	return schema, errors.WrapPrefixf(err, "\n parsing pgbouncer schema")
 }
