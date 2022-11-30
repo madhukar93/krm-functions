@@ -1,3 +1,5 @@
+// +kubebuilder:object:generate=true
+// +groupName=krm
 package pgbouncer
 
 import (
@@ -21,10 +23,11 @@ const (
 	memoryRequest           = "50Mi"
 )
 
+// +kubebuilder:object:root=true
 type FunctionConfig struct {
-	TypeMeta   metav1.TypeMeta
-	ObjectMeta metav1.ObjectMeta
-	Spec       spec `yaml:"spec"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:",inline"`
+	Spec              spec `json:"spec"`
 }
 
 type spec struct {

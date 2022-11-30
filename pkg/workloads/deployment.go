@@ -1,3 +1,5 @@
+// +kubebuilder:object:generate=true
+// +groupName=krm
 package workloads
 
 import (
@@ -8,17 +10,22 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/kube-openapi/pkg/validation/spec"
+	"sigs.k8s.io/kustomize/kyaml/errors"
+	"sigs.k8s.io/kustomize/kyaml/fn/framework"
+	"sigs.k8s.io/kustomize/kyaml/resid"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
+// +kubebuilder:object:root=true
 type FunctionConfig struct {
-	metav1.TypeMeta
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 	Spec              deploymentSpec `json:"spec"`
 }
 
 type deploymentSpec struct {
-	podSpec
+	podSpec  `json:",inline"`
 	Reloader bool         `json:"reloader,omitempty"`
 	Scaling  *scalingSpec `json:"scaling,omitempty"`
 	Strategy *strategy    `json:"strategy,omitempty"`
@@ -285,4 +292,9 @@ func makeService(d appsv1.Deployment) corev1.Service {
 		})
 	}
 	return s
+}
+
+func (a FunctionConfig) Schema() (*spec.Schema, error) {
+	schema, err := framework.SchemaFromFunctionDefinition(resid.NewGvk("krm", "workloads", "FunctionConfig"), fnutils.LoadConfig("crd/workloads/krm_functionconfigs.yaml"))
+	return schema, errors.WrapPrefixf(err, "\n parsing workloads schema")
 }

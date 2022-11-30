@@ -10,13 +10,13 @@ import (
 )
 
 type JobFunctionConfig struct {
-	metav1.TypeMeta
+	metav1.TypeMeta   `json:"inline"`
 	metav1.ObjectMeta `json:"metadata"`
 	Spec              jobSpec `json:"spec"`
 }
 
 type jobSpec struct {
-	podSpec
+	podSpec            `json:"inline"`
 	RestartPolicy      string `json:"restartPolicy,omitempty"`
 	Schedule           string `json:"schedule,omitempty"`
 	GenerateNameSuffix bool   `json:"generateNameSuffix,omitempty"`

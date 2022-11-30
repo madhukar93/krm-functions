@@ -15,4 +15,5 @@ RUN --mount=type=cache,target=/root/.cache/go-build go build -mod readonly -v -o
 
 FROM alpine:3
 COPY --from=builder /usr/local/bin/config-function /usr/local/bin/config-function
+COPY crd/ crd/
 CMD ["config-function"]
