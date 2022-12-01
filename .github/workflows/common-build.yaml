@@ -73,4 +73,4 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
             image: gcr.io/beecash-prod/infra/krm-functions/krm-release:latest
-            options: -e FUNCTION_NAME=${{ inputs.function }} -E NEW_TAG=${{ steps.image_tag.outputs.IMAGE_TAG_FULL }} -e GIT_TOKEN=${{ secrets.git_token }}
+            options: -e FUNCTION_NAME=${{ inputs.function }} -e NEW_TAG=${{ steps.image_tag.outputs.IMAGE_TAG_FULL }} -e GIT_TOKEN=${{ secrets.git_token }}
