@@ -60,5 +60,3 @@ jobs:
           build-args: FUNCTION=${{ inputs.function }}
           push: true
           tags: ${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
