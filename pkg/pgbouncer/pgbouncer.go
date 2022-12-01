@@ -305,3 +305,5 @@ func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	items = append(items, newNodes...)
 	return items, err
 }
+
+// test
