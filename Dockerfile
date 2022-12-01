@@ -8,15 +8,14 @@ WORKDIR /go/src/
 # do the go mod stuff in a separate layer/image?
 COPY go.mod .
 COPY go.sum .
-RUN go mod download
+RUN go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.10.0
+RUN go mod download 
 COPY pkg/ pkg/
 COPY cmd/${FUNCTION}/*.go .
-
-RUN go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.10.0 && \
-    controller-gen crd paths=./pkg/workloads output:crd:dir=crd/workloads && \
-	controller-gen crd paths=./pkg/pgbouncer output:crd:dir=crd/pgbouncer
-
 RUN --mount=type=cache,target=/root/.cache/go-build go build -mod readonly -v -o /usr/local/bin/config-function ./ 
+
+RUN controller-gen crd paths=./pkg/workloads output:crd:dir=crd/workloads && \
+	controller-gen crd paths=./pkg/pgbouncer output:crd:dir=crd/pgbouncer
 
 FROM alpine:3
 COPY --from=builder /usr/local/bin/config-function /usr/local/bin/config-function
