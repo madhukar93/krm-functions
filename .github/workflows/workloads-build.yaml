@@ -5,9 +5,9 @@ on:
       - master
       - release-scripts
     paths:
-      - '**/cmd/workloads/**'
-      - '**/pkg/workloads/**'
-      - '**/pkg/common/**'
+      - 'cmd/workloads/**'
+      - 'pkg/workloads/**'
+      - 'pkg/common/**'
       
 jobs:
   build:

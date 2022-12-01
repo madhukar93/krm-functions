@@ -4,9 +4,9 @@ on:
     branches:
       - master
     paths:
-      - '**/cmd/pgbouncer/**'
-      - '**/pkg/pgbouncer/**'
-      - '**/pkg/common/**'
+      - 'cmd/pgbouncer/**'
+      - 'pkg/pgbouncer/**'
+      - 'pkg/common/**'
 
 jobs:
   build:
