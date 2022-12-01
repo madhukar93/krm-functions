@@ -3,7 +3,9 @@ on:
   push:
     branches:
       - master
+      - docker-caching
     paths:
+      - '**'
       - './cmd/pgbouncer'
       - './pkg/pgbouncer'
       - './pkg/common'
@@ -11,7 +13,7 @@ on:
 jobs:
   build:
     name: build and publish
-    uses: bukukasio/krm-functions/.github/workflows/common-build.yaml@master
+    uses: bukukasio/krm-functions/.github/workflows/common-build.yaml@docker-caching
     with:
       function: "pgbouncer"
     secrets:
