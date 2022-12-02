@@ -3,6 +3,8 @@
 package pgbouncer
 
 import (
+	"io/ioutil"
+
 	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -314,6 +316,8 @@ func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 }
 
 func (a FunctionConfig) Schema() (*openapispec.Schema, error) {
-	schema, err := framework.SchemaFromFunctionDefinition(resid.NewGvk("krm", "pgbouncer", "FunctionConfig"), fnutils.LoadConfig("crd/pgbouncer/krm_functionconfigs.yaml"))
+	crdFile, err := ioutil.ReadFile("crd/pgbouncer/krm_functionconfigs.yaml")
+	pgbouncerCrd := string(crdFile)
+	schema, err := framework.SchemaFromFunctionDefinition(resid.NewGvk("krm", "pgbouncer", "FunctionConfig"), pgbouncerCrd)
 	return schema, errors.WrapPrefixf(err, "\n parsing pgbouncer schema")
 }

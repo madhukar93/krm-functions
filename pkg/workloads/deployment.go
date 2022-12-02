@@ -4,6 +4,7 @@ package workloads
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
 	appsv1 "k8s.io/api/apps/v1"
@@ -295,6 +296,8 @@ func makeService(d appsv1.Deployment) corev1.Service {
 }
 
 func (a FunctionConfig) Schema() (*spec.Schema, error) {
-	schema, err := framework.SchemaFromFunctionDefinition(resid.NewGvk("krm", "workloads", "FunctionConfig"), fnutils.LoadConfig("crd/workloads/krm_functionconfigs.yaml"))
+	crdFile, err := ioutil.ReadFile("crd/workloads/krm_functionconfigs.yaml")
+	workloadCrd := string(crdFile)
+	schema, err := framework.SchemaFromFunctionDefinition(resid.NewGvk("krm", "workloads", "FunctionConfig"), workloadCrd)
 	return schema, errors.WrapPrefixf(err, "\n parsing workloads schema")
 }

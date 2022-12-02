@@ -1,6 +1,8 @@
 package workloads
 
 import (
+	"io/ioutil"
+
 	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
 	utils "github.com/bukukasio/krm-functions/pkg/common/utils"
 	batchv1 "k8s.io/api/batch/v1"
@@ -127,6 +129,8 @@ func (fnConfig *JobFunctionConfig) Filter(nodes []*kyaml.RNode) ([]*kyaml.RNode,
 }
 
 func (a JobFunctionConfig) Schema() (*spec.Schema, error) {
-	schema, err := framework.SchemaFromFunctionDefinition(resid.NewGvk("krm", "workloads", "JobFunctionConfig"), fnutils.LoadConfig("crd/workloads/krm_jobfunctionconfigs.yaml"))
+	crdFile, err := ioutil.ReadFile("crd/workloads/krm_jobfunctionconfigs.yaml")
+	jobCrd := string(crdFile)
+	schema, err := framework.SchemaFromFunctionDefinition(resid.NewGvk("krm", "workloads", "JobFunctionConfig"), jobCrd)
 	return schema, errors.WrapPrefixf(err, "\n parsing jobs schema")
 }
