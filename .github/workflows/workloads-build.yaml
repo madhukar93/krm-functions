@@ -3,17 +3,19 @@ on:
   push:
     branches:
       - master
+      - release-scripts
     paths:
-      - './cmd/workloads'
-      - './pkg/workloads'
-      - './pkg/common'
+      - 'cmd/workloads/**'
+      - 'pkg/workloads/**'
+      - 'pkg/common/**'
       
 jobs:
   build:
     name: build and publish
-    uses: bukukasio/krm-functions/.github/workflows/common-build.yaml@master
+    uses: bukukasio/krm-functions/.github/workflows/common-build.yaml@release-scripts
     with:
       function: "workloads"
     secrets:
       service_account_key: ${{ secrets.GOOGLE_CLOUD_ACCOUNT }}
       project_id: ${{ secrets.BEECASH_PROJECT_ID }}
+      git_token: ${{ secrets.GH_COMMON_USER_TOKEN }}

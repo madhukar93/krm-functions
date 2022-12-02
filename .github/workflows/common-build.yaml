@@ -19,6 +19,9 @@ on:
       project_id:
         description: "GCP Project ID"
         required: true
+      git_token:
+        description: "Git PAT for authentication"
+        required: true
 
 jobs:
   build:
@@ -63,3 +66,11 @@ jobs:
           build-args: FUNCTION=${{ inputs.function }}
           push: true
           tags: ${{ steps.image_tag.outputs.IMAGE_TAG_FULL }}
+
+      # release krm function to the services
+      - name: release krm function script
+        if: success()
+        uses: addnab/docker-run-action@v3
+        with:
+            image: gcr.io/beecash-prod/infra/krm-functions/krm-release:latest
+            options: -e FUNCTION_NAME=${{ inputs.function }} -e NEW_TAG=${{ steps.image_tag.outputs.IMAGE_TAG_FULL }} -e GIT_TOKEN=${{ secrets.git_token }}
