@@ -1,6 +1,10 @@
+// +kubebuilder:object:generate=true
+// +groupName=krm
 package pgbouncer
 
 import (
+	"io/ioutil"
+
 	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -9,6 +13,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	openapispec "k8s.io/kube-openapi/pkg/validation/spec"
+	"sigs.k8s.io/kustomize/kyaml/errors"
+	"sigs.k8s.io/kustomize/kyaml/fn/framework"
+	"sigs.k8s.io/kustomize/kyaml/resid"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -21,10 +29,11 @@ const (
 	memoryRequest           = "50Mi"
 )
 
+// +kubebuilder:object:root=true
 type FunctionConfig struct {
-	TypeMeta   metav1.TypeMeta
-	ObjectMeta metav1.ObjectMeta
-	Spec       spec `yaml:"spec"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:",inline"`
+	Spec              spec `json:"spec"`
 }
 
 type spec struct {
@@ -304,4 +313,11 @@ func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	newNodes, err := fnutils.MakeRNodes(&svc, &deployment, &podmonitor, &pdb)
 	items = append(items, newNodes...)
 	return items, err
+}
+
+func (a FunctionConfig) Schema() (*openapispec.Schema, error) {
+	crdFile, err := ioutil.ReadFile("crd/pgbouncer/krm_functionconfigs.yaml")
+	pgbouncerCrd := string(crdFile)
+	schema, err := framework.SchemaFromFunctionDefinition(resid.NewGvk("krm", "pgbouncer", "FunctionConfig"), pgbouncerCrd)
+	return schema, errors.WrapPrefixf(err, "\n parsing pgbouncer schema")
 }

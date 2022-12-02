@@ -13,6 +13,10 @@ debug: check-function-var
 build: check-function-var
 	docker build . --build-arg=FUNCTION=${function} -t gcr.io/beecash-prod/infra/krm-functions/${function}:latest
 
+crd: check-function-var
+	controller-gen crd paths=./pkg/workloads output:crd:dir=crd/workloads
+	controller-gen crd paths=./pkg/pgbouncer output:crd:dir=crd/pgbouncer
+
 check-function-var:
 ifndef function
 	# function variabl has to be for the directive
