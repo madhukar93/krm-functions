@@ -11,7 +11,7 @@ spec:
   part-of: foobar
   connection:
     host: hostname
-    port: 1234
+    port: "1234"
     database: foobar
     username: username
     password: password

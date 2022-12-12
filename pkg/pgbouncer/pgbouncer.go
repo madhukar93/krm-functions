@@ -60,7 +60,7 @@ func (conf FunctionConfig) GetpgbouncerContainers() []corev1.Container {
 				{
 					SecretRef: &corev1.SecretEnvSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: conf.Spec.Connection.CredentialsSecret,
+							Name: conf.Spec.ConnectionSecret,
 						},
 					},
 				},
@@ -132,7 +132,7 @@ func (conf FunctionConfig) GetpgbouncerContainers() []corev1.Container {
 				{
 					SecretRef: &corev1.SecretEnvSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: conf.Spec.Connection.CredentialsSecret,
+							Name: conf.Spec.ConnectionSecret,
 						},
 					},
 				},
@@ -312,6 +312,18 @@ func addConfigMapReference(d *appsv1.Deployment, cmName string) {
 // KRMFunctionConfig.Filter is called from kio.Filter, which handles Results/errors appropriately
 // errors break the pipeline, results are appended to the resource lists' Results
 func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	for _, item := range items {
+		if item.GetKind() == "externalSecret" && item.target == spec.ConnectionSecret {
+			validateConnectionSecret(secret)
+			/*
+				POSTGRESQL_HOST
+				POSTGRESQL_PORT
+				POSTGRESQL_USERNAME
+				POSTGRESQL_PASSWORD
+				POSTGRESQL_DATABASE
+			*/
+		}
+	}
 	svc := f.getService()
 	deployment := f.getDeployment()
 	podmonitor := f.getPodMonitor()
@@ -328,8 +340,15 @@ func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 }
 
 func (a FunctionConfig) Schema() (*openapispec.Schema, error) {
+	var err error
 	crdFile, err := ioutil.ReadFile("crd/pgbouncer/krm_functionconfigs.yaml")
+	if err != nil {
+		return nil, errors.WrapPrefixf(err, "\n reading crd file")
+	}
 	pgbouncerCrd := string(crdFile)
 	schema, err := framework.SchemaFromFunctionDefinition(resid.NewGvk("krm", "pgbouncer", "FunctionConfig"), pgbouncerCrd)
+	if err != nil {
+		return nil, errors.WrapPrefixf(err, "\n parsing pgbouncer crd")
+	}
 	return schema, errors.WrapPrefixf(err, "\n parsing pgbouncer schema")
 }
