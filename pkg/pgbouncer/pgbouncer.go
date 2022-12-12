@@ -44,11 +44,11 @@ type spec struct {
 }
 
 type connection struct {
-	Host              string `json:"host"`
-	Port              string `json:"port"`
-	Database          string `json:"database"`
-	Username          string `json:"username"`
-	Password          string `json:"password"`
+	Host              string `json:"host,omitempty"`
+	Port              string `json:"port,omitempty"`
+	Database          string `json:"database,omitempty"`
+	Username          string `json:"username,omitempty"`
+	Password          string `json:"password,omitempty"`
 	CredentialsSecret string `json:"credentialsSecret"`
 }
 
@@ -114,6 +114,18 @@ func (conf FunctionConfig) GetpgbouncerContainers() []corev1.Container {
 				{
 					Name:  "PGBOUNCER_EXPORTER_HOST",
 					Value: "0.0.0.0",
+				},
+				{
+					Name:  "PGBOUNCER_USER",
+					Value: "$(POSTGRESQL_USERNAME)",
+				},
+				{
+					Name:  "PGBOUNCER_PASS",
+					Value: "$(POSTGRESQL_PASSWORD)",
+				},
+				{
+					Name:  "PGBOUNCER_PORT",
+					Value: "6432",
 				},
 			},
 			EnvFrom: []corev1.EnvFromSource{
