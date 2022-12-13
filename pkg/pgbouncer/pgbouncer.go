@@ -3,9 +3,11 @@
 package pgbouncer
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -300,19 +302,28 @@ func addConfigMapReference(d *appsv1.Deployment, cmName string) {
 	}
 }
 
+// create validateConnectionSecret function to validate the f.Spec.ConnectionSecret with esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1" template
+
+func validateConnectionSecret(secret *esapi.ExternalSecret) (*esapi.ExternalSecret, error) {
+	for _, item := range secret.Spec.Data {
+		if item.Key == "POSTGRESQL_HOST" && item.Key == "POSTGRESQL_PORT" && item.Key == "POSTGRESQL_USERNAME" && item.Key == "POSTGRESQL_PASSWORD" && item.Key == "POSTGRESQL_DATABASE" {
+			return nil, nil
+		}
+	}
+	return nil, fmt.Errorf("missing field in secret")
+}
+
 // KRMFunctionConfig.Filter is called from kio.Filter, which handles Results/errors appropriately
 // errors break the pipeline, results are appended to the resource lists' Results
 func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	for _, item := range items {
-		if item.GetKind() == "externalSecret" && item.target == spec.ConnectionSecret {
-			validateConnectionSecret(secret)
-			/*
-				POSTGRESQL_HOST
-				POSTGRESQL_PORT
-				POSTGRESQL_USERNAME
-				POSTGRESQL_PASSWORD
-				POSTGRESQL_DATABASE
-			*/
+		if item.GetKind() == "externalSecret" && item.target == f.Spec.ConnectionSecret {
+			_, err := validateConnectionSecret(item)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, fmt.Errorf("ConnectionSecret not found")
 		}
 	}
 	svc := f.getService()
