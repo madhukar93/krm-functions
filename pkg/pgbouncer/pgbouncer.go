@@ -37,19 +37,10 @@ type FunctionConfig struct {
 }
 
 type spec struct {
-	PartOf     string            `json:"part-of"`
-	App        string            `json:"app"`
-	Connection connection        `json:"connection,omitempty"`
-	Config     map[string]string `json:"config,omitempty"`
-}
-
-type connection struct {
-	Host              string `json:"host,omitempty"`
-	Port              string `json:"port,omitempty"`
-	Database          string `json:"database,omitempty"`
-	Username          string `json:"username,omitempty"`
-	Password          string `json:"password,omitempty"`
-	CredentialsSecret string `json:"credentialsSecret"`
+	PartOf           string            `json:"part-of"`
+	App              string            `json:"app"`
+	ConnectionSecret string            `json:"connectionSecret"`
+	Config           map[string]string `json:"config,omitempty"`
 }
 
 func (conf FunctionConfig) GetpgbouncerContainers() []corev1.Container {
