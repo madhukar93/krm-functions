@@ -302,22 +302,37 @@ func addConfigMapReference(d *appsv1.Deployment, cmName string) {
 	}
 }
 
-// create validateConnectionSecret function to validate the f.Spec.ConnectionSecret with esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1" template
-
+// Validation function for ExternalSecrets  -  validates that the secret contains all the required fields
 func validateConnectionSecret(secret *esapi.ExternalSecret) (*esapi.ExternalSecret, error) {
-	for _, item := range secret.Spec.Data {
-		if item.Key == "POSTGRESQL_HOST" && item.Key == "POSTGRESQL_PORT" && item.Key == "POSTGRESQL_USERNAME" && item.Key == "POSTGRESQL_PASSWORD" && item.Key == "POSTGRESQL_DATABASE" {
-			return nil, nil
+	// Fields that must be present in the secret
+	fields := map[string]bool{
+		"POSTGRESQL_HOST":     false,
+		"POSTGRESQL_PORT":     false,
+		"POSTGRESQL_USERNAME": false,
+		"POSTGRESQL_PASSWORD": false,
+		"POSTGRESQL_DATABASE": false,
+	}
+	// If all the fields are present than continue
+	for _, field := range secret.Data {
+		if _, ok := fields[field]; ok {
+			fields[field] = true
 		}
 	}
-	return nil, fmt.Errorf("missing field in secret")
+	// If any of the fields are missing, return an error
+	for field, ok := range fields {
+		if !ok {
+			return nil, fmt.Errorf("ConnectionSecret missing field %s", field)
+		}
+	}
+	return secret, nil
 }
 
 // KRMFunctionConfig.Filter is called from kio.Filter, which handles Results/errors appropriately
 // errors break the pipeline, results are appended to the resource lists' Results
 func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	fmt.Println("items", items)
 	for _, item := range items {
-		if item.GetKind() == "externalSecret" && item.target == f.Spec.ConnectionSecret {
+		if item.GetKind() == "ExternalSecret" && item.target == f.Spec.ConnectionSecret {
 			_, err := validateConnectionSecret(item)
 			if err != nil {
 				return nil, err
