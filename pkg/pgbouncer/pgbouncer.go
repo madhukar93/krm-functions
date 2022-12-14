@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 
 	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -303,7 +302,7 @@ func addConfigMapReference(d *appsv1.Deployment, cmName string) {
 }
 
 // Validation function for ExternalSecrets  -  validates that the secret contains all the required fields
-func validateConnectionSecret(secret *esapi.ExternalSecret) (*esapi.ExternalSecret, error) {
+func validateConnectionSecret(secret *corev1.Secret) (*corev1.Secret, error) {
 	// Fields that must be present in the secret
 	fields := map[string]bool{
 		"POSTGRESQL_HOST":     false,
@@ -313,9 +312,9 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) (*esapi.ExternalSecr
 		"POSTGRESQL_DATABASE": false,
 	}
 	// If all the fields are present than continue
-	for _, field := range secret.Data {
-		if _, ok := fields[field]; ok {
-			fields[field] = true
+	for _, key := range secret.Data {
+		if _, ok := fields[string(key)]; ok {
+			fields[string(key)] = true
 		}
 	}
 	// If any of the fields are missing, return an error
@@ -330,10 +329,9 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) (*esapi.ExternalSecr
 // KRMFunctionConfig.Filter is called from kio.Filter, which handles Results/errors appropriately
 // errors break the pipeline, results are appended to the resource lists' Results
 func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
-	fmt.Println("items", items)
 	for _, item := range items {
 		if item.GetKind() == "ExternalSecret" && item.target == f.Spec.ConnectionSecret {
-			_, err := validateConnectionSecret(item)
+			_, err := validateConnectionSecret(&corev1.Secret{})
 			if err != nil {
 				return nil, err
 			}
