@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 
 	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
+	esapi "github.com/external-secrets/external-secrets"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -302,7 +303,7 @@ func addConfigMapReference(d *appsv1.Deployment, cmName string) {
 }
 
 // Validation function for ExternalSecrets  -  validates that the secret contains all the required fields
-func validateConnectionSecret(secret *corev1.Secret) (*corev1.Secret, error) {
+func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 	// Fields that must be present in the secret
 	fields := map[string]bool{
 		"POSTGRESQL_HOST":     false,
@@ -320,10 +321,10 @@ func validateConnectionSecret(secret *corev1.Secret) (*corev1.Secret, error) {
 	// If any of the fields are missing, return an error
 	for field, ok := range fields {
 		if !ok {
-			return nil, fmt.Errorf("ConnectionSecret missing field %s", field)
+			return fmt.Errorf("ConnectionSecret missing field %s", field)
 		}
 	}
-	return secret, nil
+	return nil
 }
 
 // KRMFunctionConfig.Filter is called from kio.Filter, which handles Results/errors appropriately
@@ -331,7 +332,7 @@ func validateConnectionSecret(secret *corev1.Secret) (*corev1.Secret, error) {
 func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	for _, item := range items {
 		if item.GetKind() == "ExternalSecret" && item.target == f.Spec.ConnectionSecret {
-			_, err := validateConnectionSecret(&corev1.Secret{})
+			err := validateConnectionSecret(item)
 			if err != nil {
 				return nil, err
 			}
