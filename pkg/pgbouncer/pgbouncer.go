@@ -312,6 +312,10 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 		"POSTGRESQL_PASSWORD": false,
 		"POSTGRESQL_DATABASE": false,
 	}
+	// Check of the secret is nil or empty
+	if secret == nil || len(secret.Data) == 0 {
+		return fmt.Errorf("ConnectionSecret is empty")
+	}
 	// If all the fields are present than continue
 	for _, key := range secret.Data {
 		if _, ok := fields[string(key)]; ok {
