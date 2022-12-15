@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 
 	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
-	esapi "github.com/external-secrets/external-secrets"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -335,7 +335,7 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 // errors break the pipeline, results are appended to the resource lists' Results
 func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	for _, item := range items {
-		if item.GetKind() == "ExternalSecret" && item.target == f.Spec.ConnectionSecret {
+		if item.GetKind() == "ExternalSecret" {
 			err := validateConnectionSecret(item)
 			if err != nil {
 				return nil, err
