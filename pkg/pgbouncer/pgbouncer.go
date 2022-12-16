@@ -319,7 +319,8 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 		return fmt.Errorf("Error marshalling ConnectionSecret: %v", err)
 	}
 	// Check of the secret is nil or empty
-	if secretBytes == nil || len(secretBytes) == 0 {
+	// S1009: should omit nil check; len() for []byte is defined as zero (gosimple)
+	if secretBytes == nil {
 		return fmt.Errorf("ConnectionSecret is empty")
 	}
 	// If all the fields are present in secretBytes, set the value to true
