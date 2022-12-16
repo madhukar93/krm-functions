@@ -316,10 +316,10 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 	// Marshal the secret to byte array
 	secretBytes, err := json.Marshal(secret)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error marshalling ConnectionSecret: %v", err)
 	}
 	// Check of the secret is nil or empty
-	if secret == nil || len(secretBytes) == 0 {
+	if secretBytes == nil || len(secretBytes) == 0 {
 		return fmt.Errorf("ConnectionSecret is empty")
 	}
 	// If all the fields are present in secretBytes, set the value to true
@@ -334,6 +334,7 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 			return fmt.Errorf("ConnectionSecret is missing field %s", key)
 		}
 	}
+	// If all the fields are present, return nil
 	return nil
 }
 
@@ -342,26 +343,18 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	for _, item := range items {
 		if item.GetKind() == "ExternalSecret" {
-			// Marshal item into a byte array
-			s, errItemMarshalling := kyaml.Marshal(item)
-			if errItemMarshalling != nil {
-				return nil, errItemMarshalling
-			}
-			es := esapi.ExternalSecret{}
-			// Unmarshal the byte array into an ExternalSecret
-			errEsUnmarshalling := json.Unmarshal(s, &es)
-			if errEsUnmarshalling != nil {
-				return nil, errEsUnmarshalling
-			}
-			err := validateConnectionSecret(&es)
+			itemExternalSecret, err := fnutils.ParseRNodeExternalSecret(item)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("Error parsing ExternalSecret: %v", err)
+			}
+			err = validateConnectionSecret(itemExternalSecret)
+			if err != nil {
+				return nil, fmt.Errorf("ConnectionSecret is invalid: %v", err)
 			}
 		} else {
 			return nil, fmt.Errorf("ConnectionSecret not found")
 		}
 	}
-
 	svc := f.getService()
 	deployment := f.getDeployment()
 	podmonitor := f.getPodMonitor()
