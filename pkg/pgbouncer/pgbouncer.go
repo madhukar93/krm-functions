@@ -3,6 +3,7 @@
 package pgbouncer
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
@@ -336,7 +337,18 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	for _, item := range items {
 		if item.GetKind() == "ExternalSecret" {
-			err := validateConnectionSecret(item)
+			// Marshal item into a byte array
+			s, errItemMarshalling := kyaml.Marshal(item)
+			if errItemMarshalling != nil {
+				return nil, errItemMarshalling
+			}
+			es := esapi.ExternalSecret{}
+			// Unmarshal the byte array into an ExternalSecret
+			errEsUnmarshalling := json.Unmarshal(s, &es)
+			if errEsUnmarshalling != nil {
+				return nil, errEsUnmarshalling
+			}
+			err := validateConnectionSecret(&es)
 			if err != nil {
 				return nil, err
 			}
@@ -344,6 +356,7 @@ func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 			return nil, fmt.Errorf("ConnectionSecret not found")
 		}
 	}
+
 	svc := f.getService()
 	deployment := f.getDeployment()
 	podmonitor := f.getPodMonitor()
