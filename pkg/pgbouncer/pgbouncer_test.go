@@ -101,22 +101,22 @@ func TestValidateConnectionSecret(t *testing.T) {
 			expected: fmt.Errorf("ConnectionSecret is missing field POSTGRESQL_DATABASE"),
 		},
 		{
-			name:     "missing field",
+			name:     "missing field POSTGRESQL_PASSWORD",
 			secret:   parseStringToExternalSecret(inputSecretTest3),
 			expected: fmt.Errorf("ConnectionSecret is missing field POSTGRESQL_PASSWORD"),
 		},
 		{
-			name:     "missing field",
+			name:     "missing field POSTGRESQL_USERNAME",
 			secret:   parseStringToExternalSecret(inputSecretTest4),
 			expected: fmt.Errorf("ConnectionSecret is missing field POSTGRESQL_USERNAME"),
 		},
 		{
-			name:     "missing field",
+			name:     "missing field POSTGRESQL_PORT",
 			secret:   parseStringToExternalSecret(inputSecretTest5),
 			expected: fmt.Errorf("ConnectionSecret is missing field POSTGRESQL_PORT"),
 		},
 		{
-			name:     "missing field",
+			name:     "missing field POSTGRESQL_HOST",
 			secret:   parseStringToExternalSecret(inputSecretTest6),
 			expected: fmt.Errorf("ConnectionSecret is missing field POSTGRESQL_HOST"),
 		},
