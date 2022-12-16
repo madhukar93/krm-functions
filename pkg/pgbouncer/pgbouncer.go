@@ -313,20 +313,25 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 		"POSTGRESQL_PASSWORD": false,
 		"POSTGRESQL_DATABASE": false,
 	}
+	// Marshal the secret to byte array
+	secretBytes, err := json.Marshal(secret)
+	if err != nil {
+		return err
+	}
 	// Check of the secret is nil or empty
-	if secret == nil || len(secret.Data) == 0 {
+	if secret == nil || len(secretBytes) == 0 {
 		return fmt.Errorf("ConnectionSecret is empty")
 	}
-	// If all the fields are present than continue
-	for _, key := range secret.Data {
+	// If all the fields are present in secretBytes, set the value to true
+	for _, key := range secretBytes {
 		if _, ok := fields[string(key)]; ok {
 			fields[string(key)] = true
 		}
 	}
 	// If any of the fields are missing, return an error
-	for field, ok := range fields {
-		if !ok {
-			return fmt.Errorf("ConnectionSecret missing field %s", field)
+	for key, value := range fields {
+		if !value {
+			return fmt.Errorf("ConnectionSecret is missing field %s", key)
 		}
 	}
 	return nil
