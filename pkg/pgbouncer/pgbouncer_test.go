@@ -64,7 +64,7 @@ func parseStringToExternalSecret(input string) *esapi.ExternalSecret {
 	var secret esapi.ExternalSecret
 	err := yaml.Unmarshal([]byte(input), &secret)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 	return &secret
 }
