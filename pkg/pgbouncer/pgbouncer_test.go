@@ -37,17 +37,11 @@ func TestValidateConnectionSecret(t *testing.T) {
 			secret:   parseStringToExternalSecret(allPresent),
 			expected: nil,
 		},
-		// Test case: If connection secret is nil
-		{
-			name:     "nil secret",
-			secret:   nil,
-			expected: fmt.Errorf("ConnectionSecret is empty"),
-		},
 		// Test case: If connection secret is empty
 		{
 			name:     "empty secret",
 			secret:   &esapi.ExternalSecret{},
-			expected: fmt.Errorf("All fields in ConnectionSecret is missing"),
+			expected: fmt.Errorf("Secret is empty"),
 		},
 		// Test case: If connection secret is missing one of the fields
 		{

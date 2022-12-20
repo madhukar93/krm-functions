@@ -319,15 +319,13 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 	}
 	if len(data) == 0 {
 		return fmt.Errorf("Secret is empty")
-	} else if len(data) < len(expected_fields) {
+	} else {
 		issubset := subset.Check(expected_fields, data)
 		if issubset {
 			return nil
 		} else {
 			return fmt.Errorf("Some of the fields are missing from secret, Expected fields list %v", expected_fields)
 		}
-	} else {
-		return nil
 	}
 }
 
