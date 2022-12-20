@@ -33,7 +33,7 @@ jobs:
       - name: docker login
         uses: "lagren/docker-gcr-action@master"
         with:
-          SERVICE_ACCOUNT_KEY: ${{ secrets.service_account_key }}
+          SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_CLOUD_ACCOUNT }}
           HOST: "gcr.io"
       
       # Build and push to GCR
