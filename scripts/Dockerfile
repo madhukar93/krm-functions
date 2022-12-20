@@ -11,5 +11,4 @@ ENV GIT_PYTHON_REFRESH=quiet
 COPY . /scripts
 RUN chmod +x /scripts/run.sh
 
-ENTRYPOINT ["sh", "/scripts/run.sh"] 
-
+ENTRYPOINT ["sh", "/scripts/run.sh"]
