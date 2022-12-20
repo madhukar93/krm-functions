@@ -3,12 +3,12 @@
 package pgbouncer
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
 	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/facebookgo/subset"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -306,37 +306,23 @@ func addConfigMapReference(d *appsv1.Deployment, cmName string) {
 // Validation function for ExternalSecrets  -  validates that the secret contains all the required fields
 func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 	// Fields that must be present in the secret
-	fields := map[string]bool{
-		"POSTGRESQL_HOST":     false,
-		"POSTGRESQL_PORT":     false,
-		"POSTGRESQL_USERNAME": false,
-		"POSTGRESQL_PASSWORD": false,
-		"POSTGRESQL_DATABASE": false,
+	expected_fields := []string{
+		"POSTGRESQL_HOST",
+		"POSTGRESQL_PORT",
+		"POSTGRESQL_USERNAME",
+		"POSTGRESQL_PASSWORD",
+		"POSTGRESQL_DATABASE",
 	}
-	// Marshal the secret to byte array
-	secretBytes, err := json.Marshal(secret)
-	if err != nil {
-		return fmt.Errorf("Error marshalling ConnectionSecret: %v", err)
+	var data []string
+	for _, s := range secret.Spec.Data {
+		data = append(data, s.SecretKey)
 	}
-	// Check of the secret is nil or empty
-	// S1009: should omit nil check; len() for []byte is defined as zero (gosimple)
-	if secretBytes == nil {
-		return fmt.Errorf("ConnectionSecret is empty")
+	issubset := subset.Check(expected_fields, data)
+	if issubset {
+		return nil
+	} else {
+		return fmt.Errorf("Some of the fields are missing from secret, Expected fields list %v", expected_fields)
 	}
-	// If all the fields are present in secretBytes, set the value to true
-	for _, key := range secretBytes {
-		if _, ok := fields[string(key)]; ok {
-			fields[string(key)] = true
-		}
-	}
-	// If any of the fields are missing, return an error
-	for key, value := range fields {
-		if !value {
-			return fmt.Errorf("ConnectionSecret is missing field %s", key)
-		}
-	}
-	// If all the fields are present, return nil
-	return nil
 }
 
 // KRMFunctionConfig.Filter is called from kio.Filter, which handles Results/errors appropriately
@@ -344,16 +330,20 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	for _, item := range items {
 		if item.GetKind() == "ExternalSecret" {
-			itemExternalSecret, err := fnutils.ParseRNodeExternalSecret(item)
+			targetName, err := item.GetString("spec.target.name")
 			if err != nil {
-				return nil, fmt.Errorf("Error parsing ExternalSecret: %v", err)
+				return nil, fmt.Errorf("Error parsing target name from ExternalSecret: %v", err)
 			}
-			err = validateConnectionSecret(itemExternalSecret)
-			if err != nil {
-				return nil, fmt.Errorf("ConnectionSecret is invalid: %v", err)
+			if targetName == f.Spec.ConnectionSecret {
+				itemExternalSecret, err := fnutils.ParseRNodeExternalSecret(item)
+				if err != nil {
+					return nil, fmt.Errorf("Error parsing ExternalSecret from Rnode: %v", err)
+				}
+				err = validateConnectionSecret(itemExternalSecret)
+				if err != nil {
+					return nil, fmt.Errorf("ConnectionSecret is invalid: %v", err)
+				}
 			}
-		} else {
-			return nil, fmt.Errorf("ConnectionSecret not found")
 		}
 	}
 	svc := f.getService()
