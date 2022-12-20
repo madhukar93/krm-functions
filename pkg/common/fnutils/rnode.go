@@ -3,7 +3,6 @@ package fnutils
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -76,8 +75,7 @@ func ParseRNodeExternalSecret(item *kyaml.RNode) (*esapi.ExternalSecret, error) 
 	}
 	// Convert JSON to ExternalSecret
 	if err := json.Unmarshal(jsonBytes, &secret); err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+		return nil, err
 	}
 	return &secret, nil
 }

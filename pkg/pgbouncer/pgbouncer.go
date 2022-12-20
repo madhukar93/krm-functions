@@ -317,11 +317,17 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 	for _, s := range secret.Spec.Data {
 		data = append(data, s.SecretKey)
 	}
-	issubset := subset.Check(expected_fields, data)
-	if issubset {
-		return nil
+	if len(data) == 0 {
+		return fmt.Errorf("Secret is empty")
+	} else if len(data) < len(expected_fields) {
+		issubset := subset.Check(expected_fields, data)
+		if issubset {
+			return nil
+		} else {
+			return fmt.Errorf("Some of the fields are missing from secret, Expected fields list %v", expected_fields)
+		}
 	} else {
-		return fmt.Errorf("Some of the fields are missing from secret, Expected fields list %v", expected_fields)
+		return nil
 	}
 }
 
