@@ -3,8 +3,8 @@ on:
   push:
     branches:
       - master
-      - release-script-ci
-    
+    paths:
+      - 'scripts/**'
 
 jobs:
   build:
@@ -44,7 +44,7 @@ jobs:
         with:
           context: ./scripts
           file: ./scripts/Dockerfile
-          push: false
+          push: true
           tags: ${{ steps.image_tag.outputs.IMAGE }}:${{ steps.image_tag.outputs.IMAGE_TAG }}, ${{ steps.image_tag.outputs.IMAGE }}:latest
           cache-from: type=gha,mode=max
           cache-to: type=gha,mode=max
