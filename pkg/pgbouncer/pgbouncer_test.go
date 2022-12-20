@@ -25,7 +25,6 @@ func parseStringToExternalSecret(input string) *esapi.ExternalSecret {
 // It checks if the connection secret is nil or empty
 // It checks if the connection secret is missing any of the fields
 // It checks if the connection secret is valid
-
 func TestValidateConnectionSecret(t *testing.T) {
 	var tests = []struct {
 		name     string
@@ -34,8 +33,43 @@ func TestValidateConnectionSecret(t *testing.T) {
 	}{
 		{
 			name:     "All data present in secret",
-			secret:   parseStringToExternalSecret(missing_db),
+			secret:   parseStringToExternalSecret(all_present),
 			expected: nil,
+		},
+		{
+			name:     "nil secret",
+			secret:   nil,
+			expected: fmt.Errorf("ConnectionSecret is empty"),
+		},
+		{
+			name:     "empty secret",
+			secret:   &esapi.ExternalSecret{},
+			expected: fmt.Errorf("All fields in ConnectionSecret is missing"),
+		},
+		{
+			name:     "missing field",
+			secret:   parseStringToExternalSecret(missing_database),
+			expected: fmt.Errorf("ConnectionSecret is missing field POSTGRESQL_DATABASE"),
+		},
+		{
+			name:     "missing field POSTGRESQL_PASSWORD",
+			secret:   parseStringToExternalSecret(missing_password),
+			expected: fmt.Errorf("ConnectionSecret is missing field POSTGRESQL_PASSWORD"),
+		},
+		{
+			name:     "missing field POSTGRESQL_USERNAME",
+			secret:   parseStringToExternalSecret(missing_username),
+			expected: fmt.Errorf("ConnectionSecret is missing field POSTGRESQL_USERNAME"),
+		},
+		{
+			name:     "missing field POSTGRESQL_PORT",
+			secret:   parseStringToExternalSecret(missing_port),
+			expected: fmt.Errorf("ConnectionSecret is missing field POSTGRESQL_PORT"),
+		},
+		{
+			name:     "missing field POSTGRESQL_HOST",
+			secret:   parseStringToExternalSecret(missing_host),
+			expected: fmt.Errorf("ConnectionSecret is missing field POSTGRESQL_HOST"),
 		},
 	}
 	for _, test := range tests {
