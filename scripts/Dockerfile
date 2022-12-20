@@ -12,3 +12,4 @@ COPY . /scripts
 RUN chmod +x /scripts/run.sh
 
 ENTRYPOINT ["sh", "/scripts/run.sh"] 
+
