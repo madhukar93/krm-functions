@@ -317,21 +317,18 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 	for _, s := range secret.Spec.Data {
 		data = append(data, s.SecretKey)
 	}
-	if len(data) == 0 {
-		return fmt.Errorf("Secret is empty")
+	issubset := subset.Check(data, expected_fields)
+	if issubset {
+		return nil
 	} else {
-		issubset := subset.Check(expected_fields, data)
-		if issubset {
-			return nil
-		} else {
-			return fmt.Errorf("Some of the fields are missing from secret, Expected fields list %v", expected_fields)
-		}
+		return fmt.Errorf("Some of the fields are missing from secret, Expected fields list %v", expected_fields)
 	}
 }
 
 // KRMFunctionConfig.Filter is called from kio.Filter, which handles Results/errors appropriately
 // errors break the pipeline, results are appended to the resource lists' Results
 func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	var vistedExternalSecret bool
 	for _, item := range items {
 		if item.GetKind() == "ExternalSecret" {
 			targetName, err := item.GetString("spec.target.name")
@@ -347,8 +344,12 @@ func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 				if err != nil {
 					return nil, fmt.Errorf("ConnectionSecret is invalid: %v", err)
 				}
+				vistedExternalSecret = true
 			}
 		}
+	}
+	if !vistedExternalSecret {
+		return nil, fmt.Errorf("ConnectionSecret does not match any ExternalSecret")
 	}
 	svc := f.getService()
 	deployment := f.getDeployment()

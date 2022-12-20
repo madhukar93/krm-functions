@@ -1,5 +1,3 @@
-// +kubebuilder:object:generate=true
-// +groupName=krm
 package pgbouncer
 
 import (
