@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - release-script-ci
     paths:
       - 'scripts/**'
 
@@ -43,8 +44,8 @@ jobs:
         uses: docker/build-push-action@v3.2.0
         with:
           context: ./scripts
-          file: Dockerfile
-          push: true
+          file: ./scripts/Dockerfile
+          push: false
           tags: ${{ steps.image_tag.outputs.IMAGE }}:${{ steps.image_tag.outputs.IMAGE_TAG }}, ${{ steps.image_tag.outputs.IMAGE }}:latest
           cache-from: type=gha,mode=max
           cache-to: type=gha,mode=max
