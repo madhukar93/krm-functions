@@ -351,7 +351,7 @@ func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		}
 	}
 	if !vistedExternalSecret {
-		return nil, fmt.Errorf("ConnectionSecret target name not found in ExternalSecrets")
+		return nil, fmt.Errorf("External secret named %s is not found or ConnectionSecret name doesn't match the ExternalSecret target name", f.Spec.ConnectionSecret)
 	}
 	svc := f.getService()
 	deployment := f.getDeployment()
