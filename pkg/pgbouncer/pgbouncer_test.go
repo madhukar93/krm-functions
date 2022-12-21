@@ -20,32 +20,23 @@ func parseStringToExternalSecret(input string) *esapi.ExternalSecret {
 
 // Below is table driven test for validateConnectionSecret function
 // This test is used to validate the connection secret
-// It checks if the connection secret is nil or empty
-// It checks if the connection secret is missing any of the fields
-// It checks if the connection secret is valid
 func TestValidateConnectionSecret(t *testing.T) {
 	var tests = []struct {
 		name     string
 		secret   *esapi.ExternalSecret
 		expected error
 	}{
-		// Test case: If all fields are present
+		// Test case: If all fields are present in connection secret
 		{
 			name:     "all fields present",
 			secret:   parseStringToExternalSecret(allPresent),
 			expected: nil,
 		},
-		// Test case: If connection secret is empty
+		// Test case: If connection secret is missing some fields
 		{
-			name:     "empty secret",
-			secret:   &esapi.ExternalSecret{},
-			expected: fmt.Errorf("Secret is empty"),
-		},
-		// Test case: If connection secret is missing one of the fields
-		{
-			name:     "missing field POSTGRESQL_DATABASE",
-			secret:   parseStringToExternalSecret(missingDatabase),
-			expected: fmt.Errorf("ConnectionSecret is missing field POSTGRESQL_DATABASE"),
+			name:     "missing some fields",
+			secret:   parseStringToExternalSecret(missingFields),
+			expected: fmt.Errorf("Some of the fields are missing from secret. Required fields are: [POSTGRESQL_PASSWORD POSTGRESQL_HOST POSTGRESQL_PORT POSTGRESQL_USERNAME POSTGRESQL_DATABASE]"),
 		},
 	}
 	for _, test := range tests {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/facebookgo/subset"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -305,24 +304,27 @@ func addConfigMapReference(d *appsv1.Deployment, cmName string) {
 
 // Validation function for ExternalSecrets  -  validates that the secret contains all the required fields
 func validateConnectionSecret(secret *esapi.ExternalSecret) error {
-	// Fields that must be present in the secret
-	expected_fields := []string{
-		"POSTGRESQL_HOST",
-		"POSTGRESQL_PORT",
-		"POSTGRESQL_USERNAME",
-		"POSTGRESQL_PASSWORD",
-		"POSTGRESQL_DATABASE",
-	}
+	requiredFields := []string{"POSTGRESQL_PASSWORD", "POSTGRESQL_HOST", "POSTGRESQL_PORT", "POSTGRESQL_USERNAME", "POSTGRESQL_DATABASE"}
 	var data []string
 	for _, s := range secret.Spec.Data {
 		data = append(data, s.SecretKey)
 	}
-	issubset := subset.Check(data, expected_fields)
-	if issubset {
-		return nil
-	} else {
-		return fmt.Errorf("Some of the fields are missing from secret, Expected fields list %v", expected_fields)
+	// Check if all the required secrets are present in the secret
+	for _, requiredSecret := range requiredFields {
+		found := false
+		for _, d := range data {
+			if d == requiredSecret {
+				// If the required secret is present, set found to true and break the loop
+				found = true
+				break
+			}
+		}
+		// If any of the required secrets are not present, return an error
+		if !found {
+			return fmt.Errorf("Some of the fields are missing from secret. Required fields are: %v", requiredFields)
+		}
 	}
+	return nil
 }
 
 // KRMFunctionConfig.Filter is called from kio.Filter, which handles Results/errors appropriately
@@ -349,7 +351,7 @@ func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		}
 	}
 	if !vistedExternalSecret {
-		return nil, fmt.Errorf("ConnectionSecret does not match any ExternalSecret")
+		return nil, fmt.Errorf("ConnectionSecret target name not found in ExternalSecrets")
 	}
 	svc := f.getService()
 	deployment := f.getDeployment()

@@ -4,13 +4,14 @@ var allPresent = `
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: pgbouncer-app
+  name: unified-customer-profile
 spec:
+  refreshInterval: 30s
   secretStoreRef:
     kind: ClusterSecretStore
     name: vault-backend-app
   target:
-    name: postgres-creds
+    name: tokko-api-postgres-creds
   data:
     - secretKey: POSTGRESQL_HOST
       remoteRef:
@@ -31,19 +32,36 @@ spec:
     - secretKey: POSTGRESQL_DATABASE
       remoteRef:
         key: staging/ucp/postgres-db
+        property: data
+    - secretKey: PGBOUNCER_USER
+      remoteRef:
+        key: staging/ucp/postgres-user
+        property: data
+    - secretKey: PGBOUNCER_PASS
+      remoteRef:
+        key: staging/ucp/postgres-password
+        property: data
+    - secretKey: PGBOUNCER_DATABASE
+      remoteRef:
+        key: staging/ucp/postgres-db
+        property: data
+    - secretKey: SENTRY_DSN
+      remoteRef:
+        key: staging/ucp/sentry-dsn
         property: data`
 
-var missingDatabase = `
+var missingFields = `
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: pgbouncer-app
+  name: unified-customer-profile
 spec:
+  refreshInterval: 30s
   secretStoreRef:
     kind: ClusterSecretStore
     name: vault-backend-app
   target:
-    name: postgres-creds
+    name: tokko-api-postgres-creds
   data:
     - secretKey: POSTGRESQL_HOST
       remoteRef:
@@ -57,7 +75,19 @@ spec:
       remoteRef:
         key: staging/ucp/postgres-user
         property: data
-    - secretKey: POSTGRESQL_PASSWORD
+    - secretKey: PGBOUNCER_USER
+      remoteRef:
+        key: staging/ucp/postgres-user
+        property: data
+    - secretKey: PGBOUNCER_PASS
       remoteRef:
         key: staging/ucp/postgres-password
+        property: data
+    - secretKey: PGBOUNCER_DATABASE
+      remoteRef:
+        key: staging/ucp/postgres-db
+        property: data
+    - secretKey: SENTRY_DSN
+      remoteRef:
+        key: staging/ucp/sentry-dsn
         property: data`
