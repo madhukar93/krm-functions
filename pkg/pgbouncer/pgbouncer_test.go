@@ -42,7 +42,11 @@ func TestValidateConnectionSecret(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := validateConnectionSecret(test.secret)
-			if err != test.expected {
+			if err != nil && test.expected != nil {
+				if err.Error() != test.expected.Error() {
+					t.Errorf("unexpected error: got %v, want %v", err, test.expected)
+				}
+			} else if err != test.expected {
 				t.Errorf("unexpected error: got %v, want %v", err, test.expected)
 			}
 		})
