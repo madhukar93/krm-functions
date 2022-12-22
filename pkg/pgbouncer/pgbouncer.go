@@ -307,6 +307,10 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 	requiredFields := []string{"POSTGRESQL_PASSWORD", "POSTGRESQL_HOST", "POSTGRESQL_PORT", "POSTGRESQL_USERNAME", "POSTGRESQL_DATABASE"}
 	var data []string
 	for _, s := range secret.Spec.Data {
+		// Check if secretKey, remoteRef.key, and remoteRef.property are not empty
+		if s.SecretKey == "" || s.RemoteRef.Key == "" || s.RemoteRef.Property == "" {
+			return fmt.Errorf("One of the fields (secretKey, remoteRef.key, or remoteRef.property) is empty")
+		}
 		data = append(data, s.SecretKey)
 	}
 	// Check if all the required secrets are present in the secret
