@@ -9,13 +9,7 @@ metadata:
 spec:
   app: foobar-api
   part-of: foobar
-  connection:
-    host: hostname
-    port: 1234
-    database: foobar
-    username: username
-    password: password
-    credentialsSecret: tokko-api-postgres-creds # secret that contains creds key in username:pass format
+  connectionSecret: tokko-api-postgres-creds
   config:
     LISTEN_PORT: "6432"
     MAX_CLIENT_CONN: "1000"

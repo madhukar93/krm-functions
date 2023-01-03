@@ -1,8 +1,10 @@
 package fnutils
 
 import (
+	"encoding/json"
 	"fmt"
 
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -46,7 +48,7 @@ func MakeRNodes(objects ...metav1.Object) ([]*kyaml.RNode, error) {
 			u.SetUnstructuredContent(uc)
 			result.ResourceRef.TypeMeta = kyaml.TypeMeta{
 				APIVersion: u.GetAPIVersion(),
-				Kind:      u.GetKind(),
+				Kind:       u.GetKind(),
 			}
 
 			if rNode, err := kyaml.FromMap(uc); err != nil {
@@ -61,4 +63,19 @@ func MakeRNodes(objects ...metav1.Object) ([]*kyaml.RNode, error) {
 
 	}
 	return out, res
+}
+
+// Function that parses the RNode into a ExternalSecret
+func ParseRNodeExternalSecret(item *kyaml.RNode) (*esapi.ExternalSecret, error) {
+	var secret esapi.ExternalSecret
+	// Convert RNode to JSON
+	jsonBytes, err := item.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	// Convert JSON to ExternalSecret
+	if err := json.Unmarshal(jsonBytes, &secret); err != nil {
+		return nil, err
+	}
+	return &secret, nil
 }

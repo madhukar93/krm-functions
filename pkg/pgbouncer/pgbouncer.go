@@ -3,9 +3,11 @@
 package pgbouncer
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -37,19 +39,10 @@ type FunctionConfig struct {
 }
 
 type spec struct {
-	PartOf     string            `json:"part-of"`
-	App        string            `json:"app"`
-	Connection connection        `json:"connection,omitempty"`
-	Config     map[string]string `json:"config,omitempty"`
-}
-
-type connection struct {
-	Host              string `json:"host,omitempty"`
-	Port              string `json:"port,omitempty"`
-	Database          string `json:"database,omitempty"`
-	Username          string `json:"username,omitempty"`
-	Password          string `json:"password,omitempty"`
-	CredentialsSecret string `json:"credentialsSecret"`
+	PartOf           string            `json:"part-of"`
+	App              string            `json:"app"`
+	ConnectionSecret string            `json:"connectionSecret"`
+	Config           map[string]string `json:"config,omitempty"`
 }
 
 func (conf FunctionConfig) GetpgbouncerContainers() []corev1.Container {
@@ -60,7 +53,7 @@ func (conf FunctionConfig) GetpgbouncerContainers() []corev1.Container {
 				{
 					SecretRef: &corev1.SecretEnvSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: conf.Spec.Connection.CredentialsSecret,
+							Name: conf.Spec.ConnectionSecret,
 						},
 					},
 				},
@@ -132,7 +125,7 @@ func (conf FunctionConfig) GetpgbouncerContainers() []corev1.Container {
 				{
 					SecretRef: &corev1.SecretEnvSource{
 						LocalObjectReference: corev1.LocalObjectReference{
-							Name: conf.Spec.Connection.CredentialsSecret,
+							Name: conf.Spec.ConnectionSecret,
 						},
 					},
 				},
@@ -309,9 +302,66 @@ func addConfigMapReference(d *appsv1.Deployment, cmName string) {
 	}
 }
 
+// Validation function for ExternalSecrets  -  validates that the secret contains all the required fields
+func validateConnectionSecret(secret *esapi.ExternalSecret) error {
+	requiredFields := []string{"POSTGRESQL_PASSWORD", "POSTGRESQL_HOST", "POSTGRESQL_PORT", "POSTGRESQL_USERNAME", "POSTGRESQL_DATABASE"}
+	var data []string
+	for _, s := range secret.Spec.Data {
+		// Check if secretKey, remoteRef.key, and remoteRef.property are not empty
+		if s.SecretKey == "" || s.RemoteRef.Key == "" || s.RemoteRef.Property == "" {
+			return fmt.Errorf("One of the fields (secretKey, remoteRef.key, or remoteRef.property) is empty")
+		}
+		data = append(data, s.SecretKey)
+	}
+	missingRequiredFields := []string{}
+	// Check if all the required secrets are present in the secret
+	for _, requiredSecret := range requiredFields {
+		found := false
+		for _, d := range data {
+			if d == requiredSecret {
+				// If the required secret is present, set found to true and break the loop
+				found = true
+				break
+			}
+		}
+		// If the required secret is not present, append it to the list of missing required secrets
+		if !found {
+			missingRequiredFields = append(missingRequiredFields, requiredSecret)
+		}
+	}
+	// If there are missing required secrets, return an error
+	if len(missingRequiredFields) > 0 {
+		return fmt.Errorf("Required fields are missing: %v", missingRequiredFields)
+	}
+	return nil
+}
+
 // KRMFunctionConfig.Filter is called from kio.Filter, which handles Results/errors appropriately
 // errors break the pipeline, results are appended to the resource lists' Results
 func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	var vistedExternalSecret bool
+	for _, item := range items {
+		if item.GetKind() == "ExternalSecret" {
+			targetName, err := item.GetString("spec.target.name")
+			if err != nil {
+				return nil, fmt.Errorf("Error parsing target name from ExternalSecret: %v", err)
+			}
+			if targetName == f.Spec.ConnectionSecret {
+				itemExternalSecret, err := fnutils.ParseRNodeExternalSecret(item)
+				if err != nil {
+					return nil, fmt.Errorf("Error parsing ExternalSecret from Rnode: %v", err)
+				}
+				err = validateConnectionSecret(itemExternalSecret)
+				if err != nil {
+					return nil, fmt.Errorf("ConnectionSecret is invalid: %v", err)
+				}
+				vistedExternalSecret = true
+			}
+		}
+	}
+	if !vistedExternalSecret {
+		return nil, fmt.Errorf("External secret named %s is not found or ConnectionSecret name doesn't match the ExternalSecret target name", f.Spec.ConnectionSecret)
+	}
 	svc := f.getService()
 	deployment := f.getDeployment()
 	podmonitor := f.getPodMonitor()
@@ -328,8 +378,15 @@ func (f *FunctionConfig) Filter(items []*kyaml.RNode) ([]*kyaml.RNode, error) {
 }
 
 func (a FunctionConfig) Schema() (*openapispec.Schema, error) {
+	var err error
 	crdFile, err := ioutil.ReadFile("crd/pgbouncer/krm_functionconfigs.yaml")
+	if err != nil {
+		return nil, errors.WrapPrefixf(err, "\n reading crd file")
+	}
 	pgbouncerCrd := string(crdFile)
 	schema, err := framework.SchemaFromFunctionDefinition(resid.NewGvk("krm", "pgbouncer", "FunctionConfig"), pgbouncerCrd)
+	if err != nil {
+		return nil, errors.WrapPrefixf(err, "\n parsing pgbouncer crd")
+	}
 	return schema, errors.WrapPrefixf(err, "\n parsing pgbouncer schema")
 }

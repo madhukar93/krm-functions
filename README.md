@@ -82,11 +82,7 @@ spec:
   app: foobar-api
   part-of: foobar
   spec:
-    connection:
-      host: hostname
-      port: 1234
-      database: foobar
-      credentialsSecret: tokko-api-postgres-creds # secret that contains creds key in username:pass format
+    connectionSecret: tokko-api-postgres-creds # is of ConnectionSecret type which has the fields <TODO>
     config: # creates config map
       POOL_SIZE: 100
       # etc
