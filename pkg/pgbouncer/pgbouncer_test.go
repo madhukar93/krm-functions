@@ -36,7 +36,7 @@ func TestValidateConnectionSecret(t *testing.T) {
 		{
 			name:     "missing some fields",
 			secret:   parseStringToExternalSecret(missingFields),
-			expected: fmt.Errorf("Some of the fields are missing from secret. Required fields are: [POSTGRESQL_PASSWORD POSTGRESQL_HOST POSTGRESQL_PORT POSTGRESQL_USERNAME POSTGRESQL_DATABASE]"),
+			expected: fmt.Errorf("Required fields are missing: [POSTGRESQL_PASSWORD POSTGRESQL_DATABASE]"),
 		},
 		// Test case: If one of fields Check secretKey or remoteRef.key or remoteRef.property or all are empty
 		{

@@ -313,6 +313,7 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 		}
 		data = append(data, s.SecretKey)
 	}
+	missingRequiredFields := []string{}
 	// Check if all the required secrets are present in the secret
 	for _, requiredSecret := range requiredFields {
 		found := false
@@ -323,10 +324,14 @@ func validateConnectionSecret(secret *esapi.ExternalSecret) error {
 				break
 			}
 		}
-		// If any of the required secrets are not present, return an error
+		// If the required secret is not present, append it to the list of missing required secrets
 		if !found {
-			return fmt.Errorf("Some of the fields are missing from secret. Required fields are: %v", requiredFields)
+			missingRequiredFields = append(missingRequiredFields, requiredSecret)
 		}
+	}
+	// If there are missing required secrets, return an error
+	if len(missingRequiredFields) > 0 {
+		return fmt.Errorf("Required fields are missing: %v", missingRequiredFields)
 	}
 	return nil
 }
