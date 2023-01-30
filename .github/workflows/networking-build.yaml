@@ -2,7 +2,7 @@ name: Build Release Networking KRM
 on:
   push:
     branches:
-      - master
+      - test-docker-builds
     paths:
       - 'cmd/networking/**'
       - 'pkg/networking/**'
