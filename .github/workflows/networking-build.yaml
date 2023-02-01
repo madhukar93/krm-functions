@@ -2,11 +2,7 @@ name: Build Release Networking KRM
 on:
   push:
     branches:
-      - master
-    paths:
-      - 'cmd/networking/**'
-      - 'pkg/networking/**'
-      - 'pkg/common/**'
+      - gha-cache
 
 jobs:
   build:
