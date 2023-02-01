@@ -26,7 +26,7 @@ on:
 jobs:
   build:
     name: docker build and push
-    runs-on: ['self-hosted', 'kubernetes', 'staging']
+    runs-on: ubuntu-latest
     steps:
       - name: checkout
         uses: actions/checkout@v2
