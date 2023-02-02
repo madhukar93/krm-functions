@@ -66,11 +66,36 @@ spec:
     memory:
       target: 80 # (of requests)
     pubsubTopic:
-      name: some-queue
-      size: 10000 # TODO: allow higher level controls like latency and throughput
+      - name: some-queue
+        size: 10000 # TODO: allow higher level controls like latency and throughput
     # no prom stuff for now
 ```
 
+## pubsub
+
+```yaml
+---
+kind: LummoTopic
+spec:
+  topics:
+  - topicA
+  - topicB
+---
+kind: LummoSubscription
+spec:
+  config:
+    ackDeadlineSeconds: 10
+    maxDeliveryAttempts: 5
+    ttl: 2678400s
+    messageRetentionDuration: 604800s
+    maximumBackoff: 600s
+    minimumBackoff: 300s
+  subscriptions:
+  - topic: topicA
+    subscription: subA
+  - topic: topicB
+    subscription: subB
+```
 ## pgbouncer
 
 ```yaml
@@ -119,6 +144,8 @@ vault infra/postgres/tokko-api-postgres/creds
 - [ ] container template
 - [x] argocd integration
 - [x] reloader
+- [ ] vault integration
+- [ ] pubsub
 
 ### supporting multiple environment
 
