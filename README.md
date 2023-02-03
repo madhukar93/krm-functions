@@ -208,6 +208,8 @@ templating is bad
 - <https://github.com/GoogleContainerTools/kpt-backstage-plugins>
 - <https://crossplane.io/>
 - <https://kubevela.io/>
+- <https://docs.airshipit.org/>
+- <https://cloud.google.com/config-connector/docs/overview>
 
 ### Learn
 
