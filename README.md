@@ -77,12 +77,14 @@ spec:
 ---
 kind: LummoTopic
 spec:
+  prefix: dev-
   topics:
   - topicA
   - topicB
 ---
 kind: LummoSubscription
 spec:
+  prefix: dev-
   config:
     ackDeadlineSeconds: 10
     maxDeliveryAttempts: 5
