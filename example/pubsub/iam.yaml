@@ -1,0 +1,30 @@
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPartialPolicy
+metadata:
+  name: sub-a-iam
+spec:
+  bindings:
+    - members:
+        - member: >-
+            serviceAccount:service-42237471233@gcp-sa-pubsub.iam.gserviceaccount.com
+      role: roles/pubsub.subscriber
+  resourceRef:
+    apiVersion: pubsub.cnrm.cloud.google.com/v1beta1
+    name: sub-a
+    kind: PubSubSubscription
+---
+
+apiVersion: iam.cnrm.cloud.google.com/v1beta1
+kind: IAMPartialPolicy
+metadata:
+  name: topic-a.dlx-iam
+spec:
+  bindings:
+    - members:
+        - member: >-
+            serviceAccount:service-42237471233@gcp-sa-pubsub.iam.gserviceaccount.com
+      role: roles/pubsub.publisher
+  resourceRef:
+    apiVersion: pubsub.cnrm.cloud.google.com/v1beta1
+    kind: PubSubTopic
+    name: topic-a.dlx
