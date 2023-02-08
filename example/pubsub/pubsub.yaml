@@ -1,0 +1,30 @@
+apiVersion: krm/v1
+kind: PubsubTopic
+metadata:
+  name: pubsub
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: gcr.io/beecash-prod/infra/krm-functions/pubsub:latest
+spec:
+  prefix: dev-
+  topics:
+  - topicA
+---
+apiVersion: krm/v1
+kind: PubsubSubscription
+metadata:
+  name: pubsub
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: gcr.io/beecash-prod/infra/krm-functions/pubsub:latest
+spec:
+  prefix: dev-
+  subscriptions:
+  - topic: topicA
+    subscription: subA
+    config:
+      ttl: "5s"
+  - topic: topicB
+    subscription: subB
