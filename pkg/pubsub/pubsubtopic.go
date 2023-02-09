@@ -73,15 +73,3 @@ func makePubSubTopic(pubSubTopicName string) pubsub.PubSubTopic {
 	}
 	return pubSubTopic
 }
-
-// func makeIAMPartialPolicy() iam.IAMPartialPolicy {
-// 	iamPartialPolicy := iam.IAMPartialPolicy{
-// 		TypeMeta: metav1.TypeMeta{
-// 			Kind:       iam.IAMPartialPolicyGVK.Kind,
-// 			APIVersion: iam.IAMPartialPolicyGVK.Group + "/" + iam.IAMPartialPolicyGVK.Version,
-// 		},
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			Name: ,
-// 		},
-// 	}
-// }
