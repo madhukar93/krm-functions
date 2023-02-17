@@ -35,7 +35,7 @@ jobs:
         shell: bash
         run: |
           GCR_PROJECT_ID=${{ secrets.project_id }}
-          IMAGE="gcr.io/$GCR_PROJECT_ID/${{ inputs.image_name }}/${{ inputs.function }}"
+          IMAGE="asia-southeast2-docker.pkg.dev/beecash-prod/test-repo/${{ inputs.image_name }}/${{ inputs.function }}"
           BRANCH="${GITHUB_REF#refs/heads/}"
           SHA="$(git rev-parse --short HEAD)"
           IMAGE_TAG_FULL="$IMAGE:$BRANCH-$SHA"
