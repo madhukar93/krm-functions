@@ -4,8 +4,5 @@ kind: Kustomization
 commonAnnotations:
   cnrm.cloud.google.com/project-id: beecash-staging
 
-commonLabels:
-  env: devtest
-  
 generators:
   - pubsub.yaml

@@ -69,10 +69,7 @@ func (pubSubConfig *PubSubConfig) fill_defaults() {
 
 func (p *PubsubSubscription) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	out := []*kyaml.RNode{}
-	envPrefix, ok := p.ObjectMeta.Labels["env"]
-	if !ok {
-		return nil, errors.Errorf("env label not found! Can't mutate pubsub topic")
-	}
+	envPrefix := p.Spec.Prefix
 	for _, sub := range p.Spec.Subscriptions {
 		pubSubTopic := makePubSubSubscription(envPrefix+"-"+sub.Subscription, envPrefix+"-"+sub.TopicRef, sub.Config)
 		if pubSubTopic, err := fnutils.MakeRNode(pubSubTopic); err != nil {
@@ -103,7 +100,7 @@ func makePubSubSubscription(pubSubSubscriptionName string, pubSubTopic string, p
 		Spec: pubsub.PubSubSubscriptionSpec{
 			ResourceID: &pubSubSubscriptionName,
 			TopicRef: resource_ref.ResourceRef{
-				External: pubSubTopic,
+				Name: pubSubTopic,
 			},
 			MessageRetentionDuration: &p.MessageRetentionDuration,
 			AckDeadlineSeconds:       &p.AckDeadlineSeconds,
@@ -115,7 +112,7 @@ func makePubSubSubscription(pubSubSubscriptionName string, pubSubTopic string, p
 	if !strings.HasSuffix(pubSubSubscriptionName, "dlx") {
 		pubSubScription.Spec.DeadLetterPolicy = &pubsub.SubscriptionDeadLetterPolicy{
 			DeadLetterTopicRef: &resource_ref.ResourceRef{
-				External: pubSubTopic + ".dlx",
+				Name: pubSubTopic + ".dlx",
 			},
 			MaxDeliveryAttempts: &p.MaxDeliveryAttempts,
 		}
