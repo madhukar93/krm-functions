@@ -70,6 +70,9 @@ func makePubSubTopic(pubSubTopicName string) pubsub.PubSubTopic {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: pubSubTopicName,
 		},
+		Spec: pubsub.PubSubTopicSpec{
+			ResourceID: &pubSubTopicName,
+		},
 	}
 	return pubSubTopic
 }

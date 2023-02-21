@@ -97,8 +97,9 @@ func makePubSubSubscription(pubSubSubscriptionName string, pubSubTopic string, p
 			Name: pubSubSubscriptionName,
 		},
 		Spec: pubsub.PubSubSubscriptionSpec{
+			ResourceID: &pubSubSubscriptionName,
 			TopicRef: resource_ref.ResourceRef{
-				Name: pubSubTopic,
+				External: pubSubTopic,
 			},
 			MessageRetentionDuration: &p.MessageRetentionDuration,
 			AckDeadlineSeconds:       &p.AckDeadlineSeconds,
@@ -110,7 +111,7 @@ func makePubSubSubscription(pubSubSubscriptionName string, pubSubTopic string, p
 	if !strings.HasSuffix(pubSubSubscriptionName, "dlx") {
 		pubSubScription.Spec.DeadLetterPolicy = &pubsub.SubscriptionDeadLetterPolicy{
 			DeadLetterTopicRef: &resource_ref.ResourceRef{
-				Name: pubSubTopic + ".dlx",
+				External: pubSubTopic + ".dlx",
 			},
 			MaxDeliveryAttempts: &p.MaxDeliveryAttempts,
 		}
