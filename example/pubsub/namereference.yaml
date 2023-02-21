@@ -1,0 +1,16 @@
+nameReference:
+  - kind: PubSubTopic
+    fieldSpecs:
+      - path: metadata/name
+      - path: spec/resourceID
+      - kind: PubSubSubscription
+        path: spec/topicRef/name
+      - kind: PubSubSubscription  
+        path: spec/deadLetterPolicy/deadLetterTopicRef/name
+
+  - kind: PubSubSubscription
+    fieldSpecs:
+      - path: metadata/name
+      - path: spec/resourceID
+      - path: spec/deadLetterPolicy/deadLetterTopicRef/name
+      - path: spec/topicRef/name
