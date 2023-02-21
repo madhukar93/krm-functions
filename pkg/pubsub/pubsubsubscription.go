@@ -69,8 +69,12 @@ func (pubSubConfig *PubSubConfig) fill_defaults() {
 
 func (p *PubsubSubscription) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	out := []*kyaml.RNode{}
+	envPrefix, ok := p.ObjectMeta.Labels["env"]
+	if !ok {
+		return nil, errors.Errorf("env label not found! Can't mutate pubsub topic")
+	}
 	for _, sub := range p.Spec.Subscriptions {
-		pubSubTopic := makePubSubSubscription(sub.Subscription, sub.TopicRef, sub.Config)
+		pubSubTopic := makePubSubSubscription(envPrefix+"-"+sub.Subscription, envPrefix+"-"+sub.TopicRef, sub.Config)
 		if pubSubTopic, err := fnutils.MakeRNode(pubSubTopic); err != nil {
 			return nil, err
 		} else {

@@ -31,21 +31,25 @@ type PubsubTopicSpec struct {
 
 func (p *PubsubTopic) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	out := []*kyaml.RNode{}
+	envPrefix, ok := p.ObjectMeta.Labels["env"]
+	if !ok {
+		return nil, errors.Errorf("env label not found! Can't mutate pubsub topic")
+	}
 	for _, topic := range p.Spec.Topics {
-		pubSubTopic := makePubSubTopic(topic)
+		pubSubTopic := makePubSubTopic(envPrefix + "-" + topic)
 		if pubSubTopic, err := fnutils.MakeRNode(pubSubTopic); err != nil {
 			return nil, err
 		} else {
 			out = append(out, pubSubTopic)
 		}
-		deadLetterTopic := makePubSubTopic(topic + ".dlx")
+		deadLetterTopic := makePubSubTopic(envPrefix + "-" + topic + ".dlx")
 		if deadLetterTopic, err := fnutils.MakeRNode(deadLetterTopic); err != nil {
 			return nil, err
 		} else {
 			out = append(out, deadLetterTopic)
 		}
 		p := PubSubConfig{}
-		deadLetterSubscription := makePubSubSubscription(deadLetterTopic.Name, deadLetterTopic.Name, p)
+		deadLetterSubscription := makePubSubSubscription(envPrefix+"-"+deadLetterTopic.Name, envPrefix+"-"+deadLetterTopic.Name, p)
 		if deadLetterSubscription, err := fnutils.MakeRNode(deadLetterSubscription); err != nil {
 			return nil, err
 		} else {
