@@ -33,13 +33,13 @@ func (p *PubsubTopic) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	out := []*kyaml.RNode{}
 	envPrefix := p.Spec.Prefix
 	for _, topic := range p.Spec.Topics {
-		pubSubTopic := makePubSubTopic(envPrefix + "-" + topic)
+		pubSubTopic := makePubSubTopic(envPrefix + topic)
 		if pubSubTopic, err := fnutils.MakeRNode(pubSubTopic); err != nil {
 			return nil, err
 		} else {
 			out = append(out, pubSubTopic)
 		}
-		deadLetterTopic := makePubSubTopic(envPrefix + "-" + topic + ".dlx")
+		deadLetterTopic := makePubSubTopic(envPrefix + topic + ".dlx")
 		if deadLetterTopic, err := fnutils.MakeRNode(deadLetterTopic); err != nil {
 			return nil, err
 		} else {

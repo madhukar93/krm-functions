@@ -71,7 +71,7 @@ func (p *PubsubSubscription) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) 
 	out := []*kyaml.RNode{}
 	envPrefix := p.Spec.Prefix
 	for _, sub := range p.Spec.Subscriptions {
-		pubSubTopic := makePubSubSubscription(envPrefix+"-"+sub.Subscription, envPrefix+"-"+sub.TopicRef, sub.Config)
+		pubSubTopic := makePubSubSubscription(envPrefix+sub.Subscription, envPrefix+sub.TopicRef, sub.Config)
 		if pubSubTopic, err := fnutils.MakeRNode(pubSubTopic); err != nil {
 			return nil, err
 		} else {
