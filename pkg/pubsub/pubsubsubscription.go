@@ -46,7 +46,7 @@ type Subscription struct {
 	Config       PubSubConfig `json:"config,omitempty"`
 }
 
-func (pubSubConfig *PubSubConfig) fill_defaults() {
+func (pubSubConfig *PubSubConfig) fillDefaults() {
 	if pubSubConfig.AckDeadlineSeconds == 0 {
 		pubSubConfig.AckDeadlineSeconds = 10
 	}
@@ -88,7 +88,7 @@ func (p PubsubSubscription) Schema() (*spec.Schema, error) {
 }
 
 func makePubSubSubscription(pubSubSubscriptionName string, pubSubTopic string, p PubSubConfig) pubsub.PubSubSubscription {
-	p.fill_defaults()
+	p.fillDefaults()
 	pubSubScription := pubsub.PubSubSubscription{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       pubsub.PubSubSubscriptionGVK.Kind,
