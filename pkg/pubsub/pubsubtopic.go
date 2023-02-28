@@ -25,21 +25,30 @@ type PubsubTopic struct {
 }
 
 type PubsubTopicSpec struct {
-	Prefix string   `json:"prefix"`
-	Topics []string `json:"topics"`
+	Prefix string  `json:"prefix"`
+	Topics []Topic `json:"topics"`
+}
+
+type PubSubTopicConfig struct {
+	MessageRetentionDuration string `json:"messageRetentionDuration,omitempty"`
+}
+
+type Topic struct {
+	TopicName string            `json:"name"`
+	Config    PubSubTopicConfig `json:"config,omitempty"`
 }
 
 func (p *PubsubTopic) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	out := []*kyaml.RNode{}
 	envPrefix := p.Spec.Prefix
 	for _, topic := range p.Spec.Topics {
-		pubSubTopic := makePubSubTopic(envPrefix + topic)
+		pubSubTopic := makePubSubTopic(envPrefix+topic.TopicName, topic.Config)
 		if pubSubTopic, err := fnutils.MakeRNode(pubSubTopic); err != nil {
 			return nil, err
 		} else {
 			out = append(out, pubSubTopic)
 		}
-		deadLetterTopic := makePubSubTopic(envPrefix + topic + ".dlx")
+		deadLetterTopic := makePubSubTopic(envPrefix+topic.TopicName+".dlx", topic.Config)
 		if deadLetterTopic, err := fnutils.MakeRNode(deadLetterTopic); err != nil {
 			return nil, err
 		} else {
@@ -62,7 +71,7 @@ func (p PubsubTopic) Schema() (*spec.Schema, error) {
 	return schema, errors.WrapPrefixf(err, "parsing PubSub schema")
 }
 
-func makePubSubTopic(pubSubTopicName string) pubsub.PubSubTopic {
+func makePubSubTopic(pubSubTopicName string, c PubSubTopicConfig) pubsub.PubSubTopic {
 	pubSubTopic := pubsub.PubSubTopic{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       pubsub.PubSubTopicGVK.Kind,
@@ -72,7 +81,8 @@ func makePubSubTopic(pubSubTopicName string) pubsub.PubSubTopic {
 			Name: pubSubTopicName,
 		},
 		Spec: pubsub.PubSubTopicSpec{
-			ResourceID: &pubSubTopicName,
+			ResourceID:               &pubSubTopicName,
+			MessageRetentionDuration: &c.MessageRetentionDuration,
 		},
 	}
 	return pubSubTopic

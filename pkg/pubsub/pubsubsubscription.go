@@ -38,11 +38,12 @@ type PubSubConfig struct {
 	MessageRetentionDuration string `json:"messageRetentionDuration,omitempty"`
 	MaximumBackoff           string `json:"maximumBackoff,omitempty"`
 	MinimumBackoff           string `json:"minimumBackoff,omitempty"`
+	Filter                   string `json:"filter,omitempty"`
 }
 
 type Subscription struct {
-	Subscription string       `json:"subscription"`
-	TopicRef     string       `json:"topic"`
+	Subscription string       `json:"name"`
+	TopicRef     string       `json:"topicRef"`
 	Config       PubSubConfig `json:"config,omitempty"`
 }
 
@@ -107,6 +108,7 @@ func makePubSubSubscription(pubSubSubscriptionName string, pubSubTopic string, p
 			ExpirationPolicy: &pubsub.SubscriptionExpirationPolicy{
 				Ttl: p.TTL,
 			},
+			Filter: &p.Filter,
 		},
 	}
 	if !strings.HasSuffix(pubSubSubscriptionName, "dlx") {

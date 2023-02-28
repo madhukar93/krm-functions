@@ -1,7 +1,7 @@
 apiVersion: krm/v1
 kind: PubsubTopic
 metadata:
-  name: pubsub
+  name: tokko-api-pubsub
   annotations:
     config.kubernetes.io/function: |
       container:
@@ -9,12 +9,16 @@ metadata:
 spec:
   prefix: dev-
   topics:
-  - topic-a
+  - name: tokko.team-management-sync
+    config:
+      messageRetentionDuration: 864000s
+  - name: common.application-event
 ---
+
 apiVersion: krm/v1
 kind: PubsubSubscription
 metadata:
-  name: pubsub
+  name: tokko-api-pubsub
   annotations:
     config.kubernetes.io/function: |
       container:
@@ -22,9 +26,10 @@ metadata:
 spec:
   prefix: dev-
   subscriptions:
-  - topic: topic-a
-    subscription: sub-a
+  - name: tokko-subscription.catalog-integration-product-added
+    topicRef: common.application-event
     config:
-      ttl: "2678400s"
-  - topic: topic-b
-    subscription: sub-b
+      filter: attributes.eventType = "PRODUCT_UPDATES" AND attributes.eventName = "PRODUCT_ADDED"
+  - name: tokko-subscription.chat-inbox.team-management-sync
+    topicRef: tokko.team-management-sync
+  
