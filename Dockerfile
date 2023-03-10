@@ -11,13 +11,14 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download 
 COPY pkg/ pkg/
+COPY templates/${FUNCTION} templates/${FUNCTION}
 COPY cmd/${FUNCTION}/*.go .
 RUN --mount=type=cache,target=/root/.cache/go-build go build -mod readonly -v -o /usr/local/bin/config-function ./ 
 
-RUN controller-gen crd paths=./pkg/workloads output:crd:dir=crd/workloads && \
-	controller-gen crd paths=./pkg/pgbouncer output:crd:dir=crd/pgbouncer
+RUN controller-gen crd paths=./pkg/${FUNCTION} output:crd:dir=crd/${FUNCTION}
 
 FROM alpine:3
 COPY --from=builder /usr/local/bin/config-function /usr/local/bin/config-function
 COPY --from=builder /go/src/crd/ crd/
+COPY --from=builder /go/src/templates/ templates/
 CMD ["config-function"]

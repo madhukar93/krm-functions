@@ -1,0 +1,12 @@
+apiVersion: krm/v1
+kind: LummoIAM
+metadata:
+  name: test-sa
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: gcr.io/beecash-prod/infra/krm-functions/iam:latest
+spec:
+  name: test-sa
+  namespace: dev
+  project: beecash-staging
