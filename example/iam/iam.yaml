@@ -10,3 +10,4 @@ spec:
   name: test-sa
   namespace: dev
   project: beecash-staging
+  envPrefix: dev
