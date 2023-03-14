@@ -1,27 +1,27 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ .Spec.EnvPrefix }}-{{ .Spec.Name }}
+  name: {{ .Spec.Env }}-{{ .Spec.Name }}
   annotations:
-    iam.gke.io/gcp-service-account: {{ .Spec.EnvPrefix }}-{{ .Spec.Name }}@{{ .Spec.Project }}.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: {{ .Spec.Env }}-{{ .Spec.Name }}@{{ .Spec.Project }}.iam.gserviceaccount.com
 ---
 apiVersion: iam.cnrm.cloud.google.com/v1beta1
 kind: IAMServiceAccount
 metadata:
-  name: {{ .Spec.EnvPrefix }}-{{ .Spec.Name }}
+  name: {{ .Spec.Env }}-{{ .Spec.Name }}
 spec:
-  displayName: {{ .Spec.EnvPrefix }}-{{ .Spec.Name }}
+  displayName: {{ .Spec.Env }}-{{ .Spec.Name }}
 ---
 apiVersion: iam.cnrm.cloud.google.com/v1beta1
 kind: IAMPartialPolicy
 metadata:
-  name: {{ .Spec.EnvPrefix }}-{{ .Spec.Name }}
+  name: {{ .Spec.Env }}-{{ .Spec.Name }}
 spec:
   resourceRef:
     kind: IAMServiceAccount
     apiVersion: iam.cnrm.cloud.google.com/v1beta1
-    name: {{ .Spec.EnvPrefix }}-{{ .Spec.Name }}
+    name: {{ .Spec.Env }}-{{ .Spec.Name }}
   bindings:
     - role: roles/iam.workloadIdentityUser
       members:
-        - member: serviceAccount:{{ .Spec.Project }}.svc.id.goog[{{ .Spec.Namespace }}/{{ .Spec.EnvPrefix }}-{{ .Spec.Name }}]
+        - member: serviceAccount:{{ .Spec.Project }}.svc.id.goog[{{ .Spec.Env }}/{{ .Spec.Env }}-{{ .Spec.Name }}]

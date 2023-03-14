@@ -8,6 +8,5 @@ metadata:
         image: gcr.io/beecash-prod/infra/krm-functions/iam:latest
 spec:
   name: test-sa
-  namespace: dev
-  project: beecash-staging
-  envPrefix: dev
+  project: beecash-staging    
+  env: dev

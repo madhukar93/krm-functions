@@ -23,10 +23,9 @@ type LummoIAM struct {
 }
 
 type Spec struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Project   string `json:"project"`
-	EnvPrefix string `json:"envPrefix"`
+	Name    string `json:"name"`
+	Project string `json:"project"`
+	Env     string `json:"env"`
 }
 
 func (a LummoIAM) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
