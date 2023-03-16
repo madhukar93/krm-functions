@@ -15,6 +15,11 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
+const (
+	GCP_STAGING_PROJECT = "beecash-staging"
+	GCP_PROD_PROJECT    = "tokko-production"
+)
+
 // +kubebuilder:object:root=true
 type LummoIAM struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -24,11 +29,16 @@ type LummoIAM struct {
 
 type Spec struct {
 	Name    string `json:"name"`
-	Project string `json:"project"`
 	Env     string `json:"env"`
+	Project string `json:"project,omitempty"`
 }
 
 func (a LummoIAM) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
+	if a.Spec.Env == "prod" {
+		a.Spec.Project = GCP_PROD_PROJECT
+	} else {
+		a.Spec.Project = GCP_STAGING_PROJECT
+	}
 	filter := framework.TemplateProcessor{
 		ResourceTemplates: []framework.ResourceTemplate{{
 			TemplateData: &a,
