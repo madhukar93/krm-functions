@@ -6,6 +6,7 @@ package iam
 import (
 	"io/ioutil"
 
+	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"sigs.k8s.io/kustomize/kyaml/errors"
@@ -40,12 +41,16 @@ func (a LummoIAM) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 		a.Spec.Project = GCP_STAGING_PROJECT
 	}
 	filter := framework.TemplateProcessor{
-		ResourceTemplates: []framework.ResourceTemplate{{
-			TemplateData: &a,
-			Templates:    parser.TemplateFiles("templates/iam/iam.template.yaml"),
-		}},
+		ResourceTemplates: []framework.ResourceTemplate{
+			{
+				TemplateData: &a,
+				Templates:    parser.TemplateFiles("templates/iam/iam.template.yaml"),
+			},
+		},
 	}
-	return filter.Filter(items)
+	items, err := filter.Filter(items)
+	fnutils.AnnotateConfigConnectorObject(items, a.Spec.Project)
+	return items, err
 }
 
 func (a LummoIAM) Schema() (*spec.Schema, error) {
