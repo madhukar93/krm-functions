@@ -147,7 +147,10 @@ vault infra/postgres/tokko-api-postgres/creds
 - [x] argocd integration
 - [x] reloader
 - [ ] vault integration
+- [x] validation, error reporting
+- [ ] docs
 - [ ] pubsub
+- [ ] kpt integration with backstage gui
 
 ### supporting multiple environment
 
