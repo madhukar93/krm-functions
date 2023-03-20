@@ -79,7 +79,8 @@ func (p *PubsubSubscription) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) 
 			out = append(out, pubSubTopic)
 		}
 	}
-	return out, nil
+	out, err := fnutils.AnnotateConfigConnectorObject(out, fnutils.GetProject(p.Spec.Prefix))
+	return out, err
 }
 
 func (p PubsubSubscription) Schema() (*spec.Schema, error) {

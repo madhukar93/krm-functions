@@ -24,7 +24,7 @@ metadata:
       container:
         image: gcr.io/beecash-prod/infra/krm-functions/pubsub:latest
 spec:
-  prefix: dev-
+  prefix: prod-
   subscriptions:
   - name: tokko-subscription.catalog-integration-product-added
     topicRef: common.application-event
