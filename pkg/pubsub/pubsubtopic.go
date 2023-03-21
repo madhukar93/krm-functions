@@ -25,8 +25,9 @@ type PubsubTopic struct {
 }
 
 type PubsubTopicSpec struct {
-	Prefix string  `json:"prefix"`
-	Topics []Topic `json:"topics"`
+	Prefix  string   `json:"prefix"`
+	Env     string   `json:"env"`
+	Topics  []Topic  `json:"topics"`
 }
 
 type PubSubTopicConfig struct {
@@ -62,7 +63,7 @@ func (p *PubsubTopic) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 			out = append(out, deadLetterSubscription)
 		}
 	}
-	out, err := fnutils.AnnotateConfigConnectorObject(out, fnutils.GetProject(p.Spec.Prefix))
+	out, err := fnutils.AnnotateConfigConnectorObject(out, fnutils.GetProject(p.Spec.Env))
 	return out, err
 }
 

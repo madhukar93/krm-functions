@@ -28,6 +28,7 @@ type PubsubSubscription struct {
 
 type PubsubSubscriptionSpec struct {
 	Prefix        string         `json:"prefix"`
+	Env     	  string 		 `json:"env"`
 	Subscriptions []Subscription `json:"subscriptions"`
 }
 
@@ -79,7 +80,7 @@ func (p *PubsubSubscription) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) 
 			out = append(out, pubSubTopic)
 		}
 	}
-	out, err := fnutils.AnnotateConfigConnectorObject(out, fnutils.GetProject(p.Spec.Prefix))
+	out, err := fnutils.AnnotateConfigConnectorObject(out, fnutils.GetProject(p.Spec.Env))
 	return out, err
 }
 
