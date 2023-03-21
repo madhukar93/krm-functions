@@ -1,4 +1,4 @@
-package fnutils
+package utils
 
 const (
 	GCP_STAGING_PROJECT = "beecash-staging"

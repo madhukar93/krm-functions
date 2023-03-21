@@ -8,6 +8,7 @@ import (
 
 	pubsub "github.com/GoogleCloudPlatform/k8s-config-connector/pkg/clients/generated/apis/pubsub/v1beta1"
 	"github.com/bukukasio/krm-functions/pkg/common/fnutils"
+	"github.com/bukukasio/krm-functions/pkg/common/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"sigs.k8s.io/kustomize/kyaml/errors"
@@ -63,7 +64,7 @@ func (p *PubsubTopic) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
 			out = append(out, deadLetterSubscription)
 		}
 	}
-	out, err := fnutils.AnnotateConfigConnectorObject(out, fnutils.GetProject(p.Spec.Env))
+	out, err := fnutils.AnnotateConfigConnectorObject(out, utils.GetProject(p.Spec.Env))
 	return out, err
 }
 
