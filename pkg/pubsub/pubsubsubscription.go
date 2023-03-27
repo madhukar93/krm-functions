@@ -29,7 +29,7 @@ type PubsubSubscription struct {
 
 type PubsubSubscriptionSpec struct {
 	Prefix        string         `json:"prefix"`
-	Env     	  string 		 `json:"env"`
+	Env           string         `json:"env"`
 	Subscriptions []Subscription `json:"subscriptions"`
 }
 
@@ -41,6 +41,7 @@ type PubSubConfig struct {
 	MaximumBackoff           string `json:"maximumBackoff,omitempty"`
 	MinimumBackoff           string `json:"minimumBackoff,omitempty"`
 	Filter                   string `json:"filter,omitempty"`
+	EnableMessageOrdering    bool   `json:"enableMessageOrdering,omitempty"`
 }
 
 type Subscription struct {
@@ -111,6 +112,7 @@ func makePubSubSubscription(pubSubSubscriptionName string, pubSubTopic string, p
 			ExpirationPolicy: &pubsub.SubscriptionExpirationPolicy{
 				Ttl: p.TTL,
 			},
+			EnableMessageOrdering: &p.EnableMessageOrdering,
 		},
 	}
 	if p.Filter != "" {
