@@ -112,11 +112,13 @@ func makePubSubSubscription(pubSubSubscriptionName string, pubSubTopic string, p
 			ExpirationPolicy: &pubsub.SubscriptionExpirationPolicy{
 				Ttl: p.TTL,
 			},
-			EnableMessageOrdering: &p.EnableMessageOrdering,
 		},
 	}
 	if p.Filter != "" {
 		pubSubScription.Spec.Filter = &p.Filter
+	}
+	if p.EnableMessageOrdering {
+		pubSubScription.Spec.EnableMessageOrdering = &p.EnableMessageOrdering
 	}
 	if !strings.HasSuffix(pubSubSubscriptionName, "dlx") {
 		pubSubScription.Spec.DeadLetterPolicy = &pubsub.SubscriptionDeadLetterPolicy{
