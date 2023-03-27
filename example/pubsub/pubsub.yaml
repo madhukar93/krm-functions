@@ -1,0 +1,37 @@
+apiVersion: krm/v1
+kind: PubsubTopic
+metadata:
+  name: tokko-api-pubsub
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: gcr.io/beecash-prod/infra/krm-functions/pubsub:latest
+spec:
+  prefix: dev-
+  env: dev
+  topics:
+  - name: tokko.team-management-sync
+    config:
+      messageRetentionDuration: 864000s
+  - name: common.application-event
+---
+
+apiVersion: krm/v1
+kind: PubsubSubscription
+metadata:
+  name: tokko-api-pubsub
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: gcr.io/beecash-prod/infra/krm-functions/pubsub:latest
+spec:
+  prefix: dev-
+  env: dev
+  subscriptions:
+  - name: tokko-subscription.catalog-integration-product-added
+    topicRef: common.application-event
+    config:
+      filter: attributes.eventType = "PRODUCT_UPDATES" AND attributes.eventName = "PRODUCT_ADDED"
+  - name: tokko-subscription.chat-inbox.team-management-sync
+    topicRef: tokko.team-management-sync
+  

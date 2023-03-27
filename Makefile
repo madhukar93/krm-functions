@@ -16,6 +16,7 @@ build: check-function-var
 crd: check-function-var
 	controller-gen crd paths=./pkg/workloads output:crd:dir=crd/workloads
 	controller-gen crd paths=./pkg/pgbouncer output:crd:dir=crd/pgbouncer
+	controller-gen crd paths=./pkg/pubsub output:crd:dir=crd/pubsub
 
 check-function-var:
 ifndef function
