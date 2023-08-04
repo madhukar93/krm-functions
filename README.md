@@ -144,12 +144,12 @@ vault infra/postgres/tokko-api-postgres/creds
 - [x] pgbouncer
 - [ ] environments
 - [ ] container template
+- [ ] workload composition
 - [x] argocd integration
 - [x] reloader
-- [ ] vault integration
 - [x] validation, error reporting
-- [ ] docs
-- [ ] pubsub
+- [ ] openapi generated docs
+- [ ] pubsub (config-connector)
 - [ ] kpt integration with backstage gui
 
 ### supporting multiple environment
